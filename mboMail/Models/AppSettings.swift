@@ -17,6 +17,25 @@ final class AppSettings {
         }
     }
 
+    // Stored property so @Observable can track changes
+    var defaultMailClientState = false
+
+    func checkDefaultMailClient() {
+        guard let handler = LSCopyDefaultHandlerForURLScheme("mailto" as CFString)?.takeRetainedValue() as String? else {
+            defaultMailClientState = false
+            return
+        }
+        defaultMailClientState = handler.caseInsensitiveCompare(Bundle.main.bundleIdentifier ?? "") == .orderedSame
+    }
+
+    /// Returns true if set successfully, false if user needs to do it manually.
+    func setAsDefaultMailClient() -> Bool {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return false }
+        let status = LSSetDefaultHandlerForURLScheme("mailto" as CFString, bundleID as CFString)
+        checkDefaultMailClient()
+        return status == noErr && defaultMailClientState
+    }
+
     private func updateLoginItem(_ enabled: Bool) {
         do {
             if enabled {

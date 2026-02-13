@@ -10,8 +10,6 @@ struct MainWindow: View {
     @State private var isLoading = true
     @State private var error: Error?
     @State private var isSessionExpired = false
-    @State private var isSearching = false
-    @State private var searchText = ""
     @State private var wasDisconnected = false
 
     private let downloadDelegate = DownloadDelegate()
@@ -37,28 +35,23 @@ struct MainWindow: View {
             if !networkMonitor.isConnected {
                 offlineOverlay
             }
-
-            if isSearching {
-                VStack {
-                    HStack {
-                        Spacer()
-                        findBar
-                    }
-                    Spacer()
-                }
-            }
         }
         .toolbar {
             toolbarContent
         }
         .frame(minWidth: 800, minHeight: 600)
         .background(WindowAccessor())
-        .onReceive(NotificationCenter.default.publisher(for: .toggleFind)) { _ in
-            isSearching.toggle()
-            if !isSearching {
-                searchText = ""
-                clearFind()
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .focusOXSearch)) { _ in
+            // Click the OX search field via JS
+            webViewStore.webView.evaluateJavaScript("""
+                (function() {
+                    var searchField = document.querySelector('.search-field input, [data-ref="io.ox/mail/search"] input, input[placeholder*="uch"], input[placeholder*="earch"]');
+                    if (searchField) { searchField.focus(); searchField.click(); }
+                })()
+            """)
+        }
+        .onAppear {
+            _ = ZoomKeyMonitor.shared
         }
         .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
             let newZoom = min(webViewStore.currentZoom + 0.1, 3.0)
@@ -95,25 +88,12 @@ struct MainWindow: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigation) {
-            Button(action: { webViewStore.goBack() }) {
-                Image(systemName: "chevron.left")
-            }
-            .help("Back")
-
-            Button(action: { webViewStore.goForward() }) {
-                Image(systemName: "chevron.right")
-            }
-            .help("Forward")
-        }
-
         ToolbarItem(placement: .primaryAction) {
             Button(action: { webViewStore.reload() }) {
                 Image(systemName: "arrow.clockwise")
             }
             .help("Reload")
         }
-
     }
 
     // MARK: - Loading Overlay
@@ -170,47 +150,6 @@ struct MainWindow: View {
                     .frame(maxWidth: 400)
             }
         }
-    }
-
-    // MARK: - Find Bar
-
-    private var findBar: some View {
-        HStack(spacing: 8) {
-            TextField("Find in page...", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 220)
-                .onSubmit {
-                    performFind()
-                }
-
-            Button(action: performFind) {
-                Image(systemName: "magnifyingglass")
-            }
-
-            Button(action: {
-                isSearching = false
-                searchText = ""
-                clearFind()
-            }) {
-                Image(systemName: "xmark.circle.fill")
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-        .padding(8)
-    }
-
-    private func performFind() {
-        guard !searchText.isEmpty else { return }
-        let escaped = searchText
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'", with: "\\'")
-        webViewStore.webView.evaluateJavaScript("window.find('\(escaped)')")
-    }
-
-    private func clearFind() {
-        webViewStore.webView.evaluateJavaScript("window.getSelection().removeAllRanges()")
     }
 }
 

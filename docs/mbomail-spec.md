@@ -613,6 +613,7 @@ mboMail/
 - [ ] DMG packaging with background image
 - [ ] Sparkle auto-update integration
 - [ ] Browser extension support (1Password, etc.) via `WKWebExtension` (macOS 14.5+)
+- [ ] Fix Cmd++ zoom shortcut on non-US keyboard layouts (hardware key code approach doesn't work in SwiftUI menu context)
 
 **Deliverable:** A distributable `.dmg` with auto-update support, ready for public release.
 
