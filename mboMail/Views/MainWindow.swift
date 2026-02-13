@@ -6,6 +6,7 @@ struct MainWindow: View {
     @State private var webViewStore = WebViewStore()
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(AppSettings.self) private var appSettings
+    @Environment(\.openWindow) private var openWindow
 
     @State private var isLoading = true
     @State private var error: Error?
@@ -52,6 +53,9 @@ struct MainWindow: View {
         }
         .onAppear {
             _ = ZoomKeyMonitor.shared
+            NewTabAction.shared.register { [openWindow] in
+                openWindow(id: "main")
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
             let newZoom = min(webViewStore.currentZoom + 0.1, 3.0)
@@ -153,15 +157,21 @@ struct MainWindow: View {
     }
 }
 
-// MARK: - Window Frame Autosave
+// MARK: - Window Configuration
+
+private class WindowConfigView: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard let window = self.window else { return }
+        window.tabbingMode = .preferred
+        window.tabbingIdentifier = "mboMailMainWindow"
+        window.setFrameAutosaveName("MainWindow")
+    }
+}
 
 private struct WindowAccessor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async {
-            view.window?.setFrameAutosaveName("MainWindow")
-        }
-        return view
+        WindowConfigView()
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {}

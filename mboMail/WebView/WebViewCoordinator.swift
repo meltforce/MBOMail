@@ -21,6 +21,12 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
 
         // Allow mailbox.org URLs
         if let host = url.host, host.hasSuffix("mailbox.org") {
+            // Cmd+click on mailbox.org link → open in new tab
+            if navigationAction.navigationType == .linkActivated,
+               navigationAction.modifierFlags.contains(.command) {
+                openURLInNewTab(url)
+                return .cancel
+            }
             return .allow
         }
 
@@ -93,6 +99,13 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
 
     nonisolated func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         // Reserved for future JS bridge messages
+    }
+
+    // MARK: - New Tab
+
+    private func openURLInNewTab(_ url: URL) {
+        PendingTabNavigation.shared.pendingURL = url
+        NewTabAction.shared.createNewTab()
     }
 
     // MARK: - Session Detection

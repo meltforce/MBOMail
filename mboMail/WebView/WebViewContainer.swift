@@ -1,6 +1,26 @@
 import SwiftUI
 import WebKit
 
+@MainActor
+final class PendingTabNavigation {
+    static let shared = PendingTabNavigation()
+    var pendingURL: URL?
+}
+
+@MainActor
+final class NewTabAction {
+    static let shared = NewTabAction()
+    private var handler: (() -> Void)?
+
+    func register(_ action: @escaping () -> Void) {
+        handler = action
+    }
+
+    func createNewTab() {
+        handler?()
+    }
+}
+
 struct WebViewContainer: NSViewRepresentable {
 
     @Binding var isLoading: Bool
@@ -31,9 +51,10 @@ struct WebViewContainer: NSViewRepresentable {
             isSessionExpired = true
         }
 
-        // Load mailbox.org
-        let url = URL(string: "https://app.mailbox.org/appsuite/")!
+        // Load pending URL (from Cmd+click) or default mailbox.org
         if webView.url == nil {
+            let url = PendingTabNavigation.shared.pendingURL ?? URL(string: "https://app.mailbox.org/appsuite/")!
+            PendingTabNavigation.shared.pendingURL = nil
             webView.load(URLRequest(url: url))
         }
 

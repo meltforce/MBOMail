@@ -4,16 +4,20 @@ import Carbon.HIToolbox
 @main
 struct mboMailApp: App {
 
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var appSettings = AppSettings()
     @State private var networkMonitor = NetworkMonitor()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             MainWindow()
                 .environment(appSettings)
                 .environment(networkMonitor)
         }
         .commands {
+            CommandGroup(after: .newItem) {
+                NewTabCommand()
+            }
             CommandGroup(after: .textEditing) {
                 Button("Search Mail...") {
                     NotificationCenter.default.post(name: .focusOXSearch, object: nil)
@@ -29,8 +33,7 @@ struct mboMailApp: App {
     }
 }
 
-/// Monitors raw key events for zoom shortcuts using hardware key codes,
-/// so Cmd+plus works regardless of keyboard layout (US, German, etc.).
+/// Monitors raw key events for zoom shortcuts and tab switching.
 @MainActor
 final class ZoomKeyMonitor {
     static let shared = ZoomKeyMonitor()
@@ -65,8 +68,33 @@ final class ZoomKeyMonitor {
                 return nil
             }
 
+            // Tab switching: Cmd+1 through Cmd+9
+            if let chars = event.charactersIgnoringModifiers,
+               let digit = chars.first?.wholeNumberValue,
+               digit >= 1, digit <= 9 {
+                if let mainWindow = NSApp.mainWindow,
+                   let tabs = mainWindow.tabbedWindows {
+                    let index = (digit == 9) ? tabs.count - 1 : digit - 1
+                    if index >= 0, index < tabs.count {
+                        tabs[index].makeKeyAndOrderFront(nil)
+                    }
+                }
+                return nil
+            }
+
             return event
         }
+    }
+}
+
+struct NewTabCommand: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("New Tab") {
+            openWindow(id: "main")
+        }
+        .keyboardShortcut("t", modifiers: .command)
     }
 }
 
