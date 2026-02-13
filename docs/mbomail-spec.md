@@ -505,23 +505,23 @@ mboMail/
 
 **Tasks:**
 
-- [ ] WKWebView loading mailbox.org with persistent session
-- [ ] Basic single-window app with SwiftUI shell
-- [ ] Toolbar with back/forward/refresh/compose
-- [ ] mailto: handler registration and handling
-- [ ] External link detection → open in default browser
-- [ ] Horizontal swipe navigation
-- [ ] `⌘+F` find in page
-- [ ] `⌘++` / `⌘+-` / `⌘+0` zoom controls
-- [ ] Session expiry detection (redirect to login page)
-- [ ] Network error handling (offline overlay, retry on reconnect)
-- [ ] Page load failure and loading indicator
-- [ ] Attachment download handling (`WKDownloadDelegate` + `NSSavePanel`)
-- [ ] Window state restoration (size/position)
-- [ ] Custom User-Agent string
-- [ ] Default context menu (right-click)
-- [ ] Basic Settings window (start at login, default mail client, zoom level)
-- [ ] App icon, sandbox, entitlements
+- [x] WKWebView loading mailbox.org with persistent session
+- [x] Basic single-window app with SwiftUI shell
+- [x] Toolbar with back/forward/refresh/compose
+- [x] mailto: handler registration and handling
+- [x] External link detection → open in default browser
+- [x] Horizontal swipe navigation
+- [x] `⌘+F` find in page
+- [x] `⌘++` / `⌘+-` / `⌘+0` zoom controls
+- [x] Session expiry detection (redirect to login page)
+- [x] Network error handling (offline overlay, retry on reconnect)
+- [x] Page load failure and loading indicator
+- [x] Attachment download handling (`WKDownloadDelegate` + `NSSavePanel`)
+- [x] Window state restoration (size/position)
+- [x] Custom User-Agent string
+- [x] Default context menu (right-click)
+- [x] Basic Settings window (start at login, default mail client, zoom level)
+- [x] App icon, sandbox, entitlements
 
 **Deliverable:** A signed, sandboxed `.app` that can be launched and used as a daily mail client.
 
@@ -549,10 +549,10 @@ mboMail/
 
 **Tasks:**
 
-- [ ] Multi-tab support with `⌘+T`, `⌘+W`, `⌘+1-9`
-- [ ] Multi-window support with `⌘+N`
+- [x] Multi-tab support with `⌘+T`, `⌘+W`, `⌘+1-9`
+- [x] Multi-window support with `⌘+N`
 - [ ] Compose in separate window (detect compose navigation)
-- [ ] `⌘+click` opens in new tab
+- [x] `⌘+click` opens in new tab
 
 **Deliverable:** Tabs and windows work like Safari or any native macOS browser.
 
@@ -574,14 +574,14 @@ mboMail/
 
 **Tasks:**
 
-- [ ] Custom CSS/JS injection with settings UI
-- [ ] Deep links: extract Message-ID via OX HTTP API, copy `message:` URL
-- [ ] Menu bar extra with show/hide toggle
-- [ ] Auto-hide on focus loss
-- [ ] Global keyboard shortcut for visibility toggle
-- [ ] Link inspection on hover
-- [ ] Dock badge with unread count
-- [ ] Print support
+- [x] Custom CSS/JS injection with settings UI
+- [x] Deep links: extract Message-ID via OX HTTP API, copy `message:` URL
+- [x] Menu bar extra with show/hide toggle
+- [x] Auto-hide on focus loss
+- [x] Global keyboard shortcut for visibility toggle
+- [x] Link inspection on hover
+- [x] Dock badge with unread count
+- [x] Print support
 
 **Deliverable:** The app feels like a native macOS mail client with deep integration features.
 
@@ -614,6 +614,7 @@ mboMail/
 - [ ] Sparkle auto-update integration
 - [ ] Browser extension support (1Password, etc.) via `WKWebExtension` (macOS 14.5+)
 - [ ] Fix Cmd++ zoom shortcut on non-US keyboard layouts (hardware key code approach doesn't work in SwiftUI menu context)
+- [ ] Refine custom CSS selectors for OX v8 DOM changes, add predefined theme presets (see `docs/custom-css.md`)
 
 **Deliverable:** A distributable `.dmg` with auto-update support, ready for public release.
 

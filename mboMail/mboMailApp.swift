@@ -24,11 +24,46 @@ struct mboMailApp: App {
                 }
                 .keyboardShortcut("f", modifiers: .command)
             }
+            CommandGroup(after: .pasteboard) {
+                Button("Copy Link to Mail") {
+                    NotificationCenter.default.post(name: .copyMailLink, object: nil)
+                }
+                .keyboardShortcut("l", modifiers: .command)
+            }
+            CommandGroup(replacing: .printItem) {
+                Button("Print...") {
+                    NotificationCenter.default.post(name: .printMail, object: nil)
+                }
+                .keyboardShortcut("p", modifiers: .command)
+            }
         }
 
         Settings {
             SettingsView()
                 .environment(appSettings)
+        }
+
+        MenuBarExtra("mboMail", systemImage: "envelope.fill", isInserted: $appSettings.showInMenuBar) {
+            Button("Show / Hide mboMail") {
+                toggleAppVisibility()
+            }
+            .keyboardShortcut("m", modifiers: .option)
+            Divider()
+            Button("Quit mboMail") {
+                NSApp.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
+        }
+    }
+
+    private func toggleAppVisibility() {
+        if NSApp.isHidden {
+            NSApp.unhide(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else if NSApp.isActive {
+            NSApp.hide(nil)
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
 }
@@ -103,4 +138,6 @@ extension Notification.Name {
     static let zoomIn = Notification.Name("zoomIn")
     static let zoomOut = Notification.Name("zoomOut")
     static let zoomReset = Notification.Name("zoomReset")
+    static let copyMailLink = Notification.Name("copyMailLink")
+    static let printMail = Notification.Name("printMail")
 }

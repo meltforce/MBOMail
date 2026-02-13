@@ -12,17 +12,19 @@ struct MainWindow: View {
     @State private var error: Error?
     @State private var isSessionExpired = false
     @State private var wasDisconnected = false
+    @State private var hoveredLink = ""
 
     private let downloadDelegate = DownloadDelegate()
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottomLeading) {
             WebViewContainer(
                 isLoading: $isLoading,
                 error: $error,
                 isSessionExpired: $isSessionExpired,
                 downloadDelegate: downloadDelegate,
-                webViewStore: webViewStore
+                webViewStore: webViewStore,
+                hoveredLink: $hoveredLink
             )
 
             if isLoading && error == nil && networkMonitor.isConnected {
@@ -35,6 +37,18 @@ struct MainWindow: View {
 
             if !networkMonitor.isConnected {
                 offlineOverlay
+            }
+
+            // Link hover status bar
+            if !hoveredLink.isEmpty {
+                Text(hoveredLink)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 4))
+                    .padding(4)
             }
         }
         .toolbar {
@@ -79,6 +93,23 @@ struct MainWindow: View {
             } else if !isConnected {
                 wasDisconnected = true
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .copyMailLink)) { _ in
+            webViewStore.copyMessageLink()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .printMail)) { _ in
+            webViewStore.printPage()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            if appSettings.autoHideOnFocusLoss {
+                NSApp.hide(nil)
+            }
+        }
+        .onChange(of: appSettings.customCSS) { _, newCSS in
+            webViewStore.injectCustomStyles(css: newCSS)
+        }
+        .onChange(of: appSettings.customJS) { _, newJS in
+            webViewStore.injectCustomScripts(js: newJS)
         }
         .onOpenURL { url in
             if url.scheme == "mailto" {

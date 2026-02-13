@@ -9,6 +9,10 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
     var onLoadingChanged: ((Bool) -> Void)?
     var onError: ((Error) -> Void)?
     var onSessionExpired: (() -> Void)?
+    var onLinkHover: ((String) -> Void)?
+    var onUnreadCount: ((Int) -> Void)?
+    var onMessageId: ((String) -> Void)?
+    var onPageLoaded: (() -> Void)?
 
     init(_ parent: WebViewContainer) {
         self.parent = parent
@@ -52,6 +56,11 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         onLoadingChanged?(false)
         detectSessionState(webView)
+
+        // Re-inject permanent scripts and custom CSS/JS after each navigation
+        webView.evaluateJavaScript(WebViewStore.linkHoverJS)
+        webView.evaluateJavaScript(WebViewStore.unreadObserverJS)
+        onPageLoaded?()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -98,7 +107,24 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
     // MARK: - WKScriptMessageHandler
 
     nonisolated func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        // Reserved for future JS bridge messages
+        guard let body = message.body as? [String: Any],
+              let type = body["type"] as? String else { return }
+
+        MainActor.assumeIsolated {
+            switch type {
+            case "linkHover":
+                let url = body["url"] as? String ?? ""
+                onLinkHover?(url)
+            case "unreadCount":
+                let count = body["count"] as? Int ?? 0
+                onUnreadCount?(count)
+            case "messageId":
+                let value = body["value"] as? String ?? ""
+                onMessageId?(value)
+            default:
+                break
+            }
+        }
     }
 
     // MARK: - New Tab

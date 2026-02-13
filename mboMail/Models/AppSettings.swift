@@ -17,6 +17,29 @@ final class AppSettings {
         }
     }
 
+    var customCSS: String {
+        get { UserDefaults.standard.string(forKey: "customCSS") ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: "customCSS") }
+    }
+
+    var customJS: String {
+        get { UserDefaults.standard.string(forKey: "customJS") ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: "customJS") }
+    }
+
+    var showInMenuBar: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: "showInMenuBar") == nil { return true }
+            return UserDefaults.standard.bool(forKey: "showInMenuBar")
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "showInMenuBar") }
+    }
+
+    var autoHideOnFocusLoss: Bool {
+        get { UserDefaults.standard.bool(forKey: "autoHideOnFocusLoss") }
+        set { UserDefaults.standard.set(newValue, forKey: "autoHideOnFocusLoss") }
+    }
+
     // Stored property so @Observable can track changes
     var defaultMailClientState = false
 
