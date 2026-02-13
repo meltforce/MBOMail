@@ -612,6 +612,7 @@ mboMail/
 - [ ] Tracker/ad blocking via WKContentRuleList
 - [ ] DMG packaging with background image
 - [ ] Sparkle auto-update integration
+- [ ] Browser extension support (1Password, etc.) via `WKWebExtension` (macOS 14.5+)
 
 **Deliverable:** A distributable `.dmg` with auto-update support, ready for public release.
 
