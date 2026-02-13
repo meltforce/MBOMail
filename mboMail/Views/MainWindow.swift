@@ -114,12 +114,6 @@ struct MainWindow: View {
             .help("Reload")
         }
 
-        ToolbarItem(placement: .primaryAction) {
-            Button(action: { webViewStore.navigateToCompose() }) {
-                Image(systemName: "square.and.pencil")
-            }
-            .help("Compose")
-        }
     }
 
     // MARK: - Loading Overlay
