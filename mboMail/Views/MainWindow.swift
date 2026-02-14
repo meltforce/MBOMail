@@ -19,10 +19,10 @@ struct MainWindow: View {
 
     var body: some View {
         mainContent
-            .toolbar { toolbarContent }
             .frame(minWidth: 800, minHeight: 600)
             .background(WindowAccessor())
-            .modifier(NotificationHandlers(webViewStore: webViewStore, appSettings: appSettings))
+            .modifier(ZoomHandlers(webViewStore: webViewStore, appSettings: appSettings))
+            .modifier(ActionHandlers(webViewStore: webViewStore, appSettings: appSettings))
             .modifier(SettingsHandlers(webViewStore: webViewStore, appSettings: appSettings))
             .onAppear {
                 _ = ZoomKeyMonitor.shared
@@ -115,18 +115,6 @@ struct MainWindow: View {
         }
     }
 
-    // MARK: - Toolbar
-
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button(action: { webViewStore.reload() }) {
-                Image(systemName: "arrow.clockwise")
-            }
-            .help("Reload")
-        }
-    }
-
     // MARK: - Loading Overlay
 
     private var loadingOverlay: some View {
@@ -184,22 +172,14 @@ struct MainWindow: View {
     }
 }
 
-// MARK: - Notification Handlers (extracted to reduce body complexity)
+// MARK: - Notification Handlers (split into two modifiers to stay within type-checker limits)
 
-private struct NotificationHandlers: ViewModifier {
+private struct ZoomHandlers: ViewModifier {
     let webViewStore: WebViewStore
     let appSettings: AppSettings
 
     func body(content: Content) -> some View {
         content
-            .onReceive(NotificationCenter.default.publisher(for: .focusOXSearch)) { _ in
-                webViewStore.webView.evaluateJavaScript("""
-                    (function() {
-                        var searchField = document.querySelector('.search-field input, [data-ref="io.ox/mail/search"] input, input[placeholder*="uch"], input[placeholder*="earch"]');
-                        if (searchField) { searchField.focus(); searchField.click(); }
-                    })()
-                """)
-            }
             .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
                 let newZoom = min(webViewStore.currentZoom + 0.1, 3.0)
                 webViewStore.setZoom(newZoom)
@@ -214,11 +194,31 @@ private struct NotificationHandlers: ViewModifier {
                 webViewStore.setZoom(1.0)
                 appSettings.zoomLevel = 1.0
             }
+    }
+}
+
+private struct ActionHandlers: ViewModifier {
+    let webViewStore: WebViewStore
+    let appSettings: AppSettings
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .focusOXSearch)) { _ in
+                webViewStore.webView.evaluateJavaScript("""
+                    (function() {
+                        var searchField = document.querySelector('.search-field input, [data-ref="io.ox/mail/search"] input, input[placeholder*="uch"], input[placeholder*="earch"]');
+                        if (searchField) { searchField.focus(); searchField.click(); }
+                    })()
+                """)
+            }
             .onReceive(NotificationCenter.default.publisher(for: .copyMailLink)) { _ in
                 webViewStore.copyMessageLink()
             }
             .onReceive(NotificationCenter.default.publisher(for: .printMail)) { _ in
                 webViewStore.printPage()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .reloadPage)) { _ in
+                webViewStore.reload()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
                 if appSettings.autoHideOnFocusLoss {

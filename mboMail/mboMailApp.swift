@@ -42,6 +42,12 @@ struct mboMailApp: App {
                 }
                 .keyboardShortcut("p", modifiers: .command)
             }
+            CommandGroup(after: .toolbar) {
+                Button("Reload Page") {
+                    NotificationCenter.default.post(name: .reloadPage, object: nil)
+                }
+                .keyboardShortcut("r", modifiers: .command)
+            }
             // Zoom commands — SwiftUI menu shortcuts have highest priority and
             // match on the produced character, so "+" works on any keyboard layout.
             CommandGroup(after: .toolbar) {
@@ -169,4 +175,5 @@ extension Notification.Name {
     static let zoomReset = Notification.Name("zoomReset")
     static let copyMailLink = Notification.Name("copyMailLink")
     static let printMail = Notification.Name("printMail")
+    static let reloadPage = Notification.Name("reloadPage")
 }
