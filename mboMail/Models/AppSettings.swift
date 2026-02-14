@@ -40,15 +40,29 @@ final class AppSettings {
         set { UserDefaults.standard.set(newValue, forKey: "autoHideOnFocusLoss") }
     }
 
-    // Stored property so @Observable can track changes
+    // Stored property so @Observable can track changes and trigger onChange in SwiftUI
+    var trackerBlockingEnabled: Bool {
+        didSet { UserDefaults.standard.set(trackerBlockingEnabled, forKey: "trackerBlockingEnabled") }
+    }
+
     var defaultMailClientState = false
 
+    init() {
+        if UserDefaults.standard.object(forKey: "trackerBlockingEnabled") == nil {
+            trackerBlockingEnabled = true
+        } else {
+            trackerBlockingEnabled = UserDefaults.standard.bool(forKey: "trackerBlockingEnabled")
+        }
+    }
+
     func checkDefaultMailClient() {
-        guard let handler = LSCopyDefaultHandlerForURLScheme("mailto" as CFString)?.takeRetainedValue() as String? else {
+        guard let mailtoURL = URL(string: "mailto:"),
+              let handlerURL = NSWorkspace.shared.urlForApplication(toOpen: mailtoURL),
+              let handlerBundle = Bundle(url: handlerURL)?.bundleIdentifier else {
             defaultMailClientState = false
             return
         }
-        defaultMailClientState = handler.caseInsensitiveCompare(Bundle.main.bundleIdentifier ?? "") == .orderedSame
+        defaultMailClientState = handlerBundle.caseInsensitiveCompare(Bundle.main.bundleIdentifier ?? "") == .orderedSame
     }
 
     /// Returns true if set successfully, false if user needs to do it manually.

@@ -604,17 +604,17 @@ mboMail/
 
 **Tasks:**
 
-- [ ] Customizable toolbar (add/remove/rearrange buttons)
-- [ ] SimpleLogin integration (create alias, copy to clipboard)
-- [ ] Drag and drop (attachments in/out)
-- [ ] Homebrew Cask formula
-- [ ] Shortened URL inspection on hover
-- [ ] Tracker/ad blocking via WKContentRuleList
-- [ ] DMG packaging with background image
-- [ ] Sparkle auto-update integration
-- [ ] Browser extension support (1Password, etc.) via `WKWebExtension` (macOS 14.5+)
-- [ ] Fix Cmd++ zoom shortcut on non-US keyboard layouts (hardware key code approach doesn't work in SwiftUI menu context)
-- [ ] Refine custom CSS selectors for OX v8 DOM changes, add predefined theme presets (see `docs/custom-css.md`)
+- [ ] Customizable toolbar (add/remove/rearrange buttons) — deferred
+- [ ] SimpleLogin integration (create alias, copy to clipboard) — deferred
+- [x] Drag and drop / file upload (`runOpenPanelWith` WKUIDelegate method)
+- [x] Homebrew Cask formula
+- [x] Shortened URL inspection on hover
+- [x] Tracker/ad blocking via WKContentRuleList
+- [x] DMG packaging with background image
+- [x] Sparkle auto-update integration
+- [x] Browser extension support (WKWebExtension) — POC/stub, API not yet in SDK
+- [x] Fix Cmd++ zoom shortcut on non-US keyboard layouts (character-based fallback + numpad)
+- [ ] Refine custom CSS selectors for OX v8 DOM changes, add predefined theme presets (see `docs/custom-css.md`) — deferred
 
 **Deliverable:** A distributable `.dmg` with auto-update support, ready for public release.
 

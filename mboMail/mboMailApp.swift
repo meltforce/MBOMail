@@ -1,5 +1,6 @@
 import SwiftUI
 import Carbon.HIToolbox
+import Sparkle
 
 @main
 struct mboMailApp: App {
@@ -8,6 +9,8 @@ struct mboMailApp: App {
     @State private var appSettings = AppSettings()
     @State private var networkMonitor = NetworkMonitor()
 
+    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+
     var body: some Scene {
         WindowGroup(id: "main") {
             MainWindow()
@@ -15,6 +18,9 @@ struct mboMailApp: App {
                 .environment(networkMonitor)
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesView(updater: updaterController.updater)
+            }
             CommandGroup(after: .newItem) {
                 NewTabCommand()
             }
@@ -35,6 +41,22 @@ struct mboMailApp: App {
                     NotificationCenter.default.post(name: .printMail, object: nil)
                 }
                 .keyboardShortcut("p", modifiers: .command)
+            }
+            // Zoom commands — SwiftUI menu shortcuts have highest priority and
+            // match on the produced character, so "+" works on any keyboard layout.
+            CommandGroup(after: .toolbar) {
+                Button("Zoom In") {
+                    NotificationCenter.default.post(name: .zoomIn, object: nil)
+                }
+                .keyboardShortcut("+", modifiers: .command)
+                Button("Zoom Out") {
+                    NotificationCenter.default.post(name: .zoomOut, object: nil)
+                }
+                .keyboardShortcut("-", modifiers: .command)
+                Button("Actual Size") {
+                    NotificationCenter.default.post(name: .zoomReset, object: nil)
+                }
+                .keyboardShortcut("0", modifiers: .command)
             }
         }
 
@@ -68,7 +90,9 @@ struct mboMailApp: App {
     }
 }
 
-/// Monitors raw key events for zoom shortcuts and tab switching.
+/// Monitors raw key events for numpad zoom and tab switching.
+/// Main zoom shortcuts (+/-/0) are handled by SwiftUI menu commands which have
+/// highest priority and are keyboard-layout-aware.
 @MainActor
 final class ZoomKeyMonitor {
     static let shared = ZoomKeyMonitor()
@@ -85,21 +109,26 @@ final class ZoomKeyMonitor {
 
             let keyCode = Int(event.keyCode)
 
-            // kVK_ANSI_Equal (24) — the +/= key on US, +/* on German
+            // Numpad plus/minus for zoom
+            if keyCode == kVK_ANSI_KeypadPlus {
+                NotificationCenter.default.post(name: .zoomIn, object: nil)
+                return nil
+            }
+            if keyCode == kVK_ANSI_KeypadMinus {
+                NotificationCenter.default.post(name: .zoomOut, object: nil)
+                return nil
+            }
+
+            // Cmd+= (US keyboard zoom-in without Shift, keyCode 24)
             if keyCode == kVK_ANSI_Equal {
                 NotificationCenter.default.post(name: .zoomIn, object: nil)
                 return nil
             }
 
-            // kVK_ANSI_Minus (27)
-            if keyCode == kVK_ANSI_Minus {
-                NotificationCenter.default.post(name: .zoomOut, object: nil)
-                return nil
-            }
-
-            // kVK_ANSI_0 (29)
-            if keyCode == kVK_ANSI_0 {
-                NotificationCenter.default.post(name: .zoomReset, object: nil)
+            // Character-based fallback for "+" (covers German/ISO keyboards where
+            // + is an unshifted key and may not match the menu shortcut)
+            if let chars = event.charactersIgnoringModifiers, chars == "+" {
+                NotificationCenter.default.post(name: .zoomIn, object: nil)
                 return nil
             }
 

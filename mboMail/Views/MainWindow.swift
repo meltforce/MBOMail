@@ -13,10 +13,43 @@ struct MainWindow: View {
     @State private var isSessionExpired = false
     @State private var wasDisconnected = false
     @State private var hoveredLink = ""
+    @State private var resolvedLink = ""
 
     private let downloadDelegate = DownloadDelegate()
 
     var body: some View {
+        mainContent
+            .toolbar { toolbarContent }
+            .frame(minWidth: 800, minHeight: 600)
+            .background(WindowAccessor())
+            .modifier(NotificationHandlers(webViewStore: webViewStore, appSettings: appSettings))
+            .modifier(SettingsHandlers(webViewStore: webViewStore, appSettings: appSettings))
+            .onAppear {
+                _ = ZoomKeyMonitor.shared
+                NewTabAction.shared.register { [openWindow] in
+                    openWindow(id: "main")
+                }
+            }
+            .onChange(of: networkMonitor.isConnected) { _, isConnected in
+                if isConnected && wasDisconnected {
+                    error = nil
+                    webViewStore.reload()
+                    wasDisconnected = false
+                } else if !isConnected {
+                    wasDisconnected = true
+                }
+            }
+            .onOpenURL { url in
+                if url.scheme == "mailto" {
+                    let params = MailtoHandler.parse(url)
+                    webViewStore.navigateToCompose(parameters: params)
+                }
+            }
+    }
+
+    // MARK: - Main Content
+
+    private var mainContent: some View {
         ZStack(alignment: .bottomLeading) {
             WebViewContainer(
                 isLoading: $isLoading,
@@ -39,82 +72,45 @@ struct MainWindow: View {
                 offlineOverlay
             }
 
-            // Link hover status bar
-            if !hoveredLink.isEmpty {
+            hoverStatusBar
+        }
+    }
+
+    // MARK: - Hover Status Bar
+
+    @ViewBuilder
+    private var hoverStatusBar: some View {
+        if !hoveredLink.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(hoveredLink)
                     .font(.caption)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 4))
-                    .padding(4)
+                if !resolvedLink.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.right")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(resolvedLink)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
-        }
-        .toolbar {
-            toolbarContent
-        }
-        .frame(minWidth: 800, minHeight: 600)
-        .background(WindowAccessor())
-        .onReceive(NotificationCenter.default.publisher(for: .focusOXSearch)) { _ in
-            // Click the OX search field via JS
-            webViewStore.webView.evaluateJavaScript("""
-                (function() {
-                    var searchField = document.querySelector('.search-field input, [data-ref="io.ox/mail/search"] input, input[placeholder*="uch"], input[placeholder*="earch"]');
-                    if (searchField) { searchField.focus(); searchField.click(); }
-                })()
-            """)
-        }
-        .onAppear {
-            _ = ZoomKeyMonitor.shared
-            NewTabAction.shared.register { [openWindow] in
-                openWindow(id: "main")
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
-            let newZoom = min(webViewStore.currentZoom + 0.1, 3.0)
-            webViewStore.setZoom(newZoom)
-            appSettings.zoomLevel = newZoom
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
-            let newZoom = max(webViewStore.currentZoom - 0.1, 0.5)
-            webViewStore.setZoom(newZoom)
-            appSettings.zoomLevel = newZoom
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .zoomReset)) { _ in
-            webViewStore.setZoom(1.0)
-            appSettings.zoomLevel = 1.0
-        }
-        .onChange(of: networkMonitor.isConnected) { _, isConnected in
-            if isConnected && wasDisconnected {
-                error = nil
-                webViewStore.reload()
-                wasDisconnected = false
-            } else if !isConnected {
-                wasDisconnected = true
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .copyMailLink)) { _ in
-            webViewStore.copyMessageLink()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .printMail)) { _ in
-            webViewStore.printPage()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
-            if appSettings.autoHideOnFocusLoss {
-                NSApp.hide(nil)
-            }
-        }
-        .onChange(of: appSettings.customCSS) { _, newCSS in
-            webViewStore.injectCustomStyles(css: newCSS)
-        }
-        .onChange(of: appSettings.customJS) { _, newJS in
-            webViewStore.injectCustomScripts(js: newJS)
-        }
-        .onOpenURL { url in
-            if url.scheme == "mailto" {
-                let params = MailtoHandler.parse(url)
-                webViewStore.navigateToCompose(parameters: params)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 4))
+            .padding(4)
+            .task(id: hoveredLink) {
+                resolvedLink = ""
+                guard URLResolver.isShortened(hoveredLink) else { return }
+                let linkToResolve = hoveredLink
+                if let resolved = await URLResolver.shared.resolve(linkToResolve),
+                   hoveredLink == linkToResolve {
+                    resolvedLink = resolved
+                }
             }
         }
     }
@@ -185,6 +181,79 @@ struct MainWindow: View {
                     .frame(maxWidth: 400)
             }
         }
+    }
+}
+
+// MARK: - Notification Handlers (extracted to reduce body complexity)
+
+private struct NotificationHandlers: ViewModifier {
+    let webViewStore: WebViewStore
+    let appSettings: AppSettings
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .focusOXSearch)) { _ in
+                webViewStore.webView.evaluateJavaScript("""
+                    (function() {
+                        var searchField = document.querySelector('.search-field input, [data-ref="io.ox/mail/search"] input, input[placeholder*="uch"], input[placeholder*="earch"]');
+                        if (searchField) { searchField.focus(); searchField.click(); }
+                    })()
+                """)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
+                let newZoom = min(webViewStore.currentZoom + 0.1, 3.0)
+                webViewStore.setZoom(newZoom)
+                appSettings.zoomLevel = newZoom
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
+                let newZoom = max(webViewStore.currentZoom - 0.1, 0.5)
+                webViewStore.setZoom(newZoom)
+                appSettings.zoomLevel = newZoom
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .zoomReset)) { _ in
+                webViewStore.setZoom(1.0)
+                appSettings.zoomLevel = 1.0
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .copyMailLink)) { _ in
+                webViewStore.copyMessageLink()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .printMail)) { _ in
+                webViewStore.printPage()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+                if appSettings.autoHideOnFocusLoss {
+                    NSApp.hide(nil)
+                }
+            }
+    }
+}
+
+// MARK: - Settings Change Handlers
+
+private struct SettingsHandlers: ViewModifier {
+    let webViewStore: WebViewStore
+    let appSettings: AppSettings
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: appSettings.trackerBlockingEnabled) { _, enabled in
+                if enabled {
+                    Task {
+                        await ContentBlocker.shared.compile()
+                        ContentBlocker.shared.apply(to: webViewStore.userContentController)
+                        webViewStore.reload()
+                    }
+                } else {
+                    ContentBlocker.shared.remove(from: webViewStore.userContentController)
+                    webViewStore.reload()
+                }
+            }
+            .onChange(of: appSettings.customCSS) { _, newCSS in
+                webViewStore.injectCustomStyles(css: newCSS)
+            }
+            .onChange(of: appSettings.customJS) { _, newJS in
+                webViewStore.injectCustomScripts(js: newJS)
+            }
     }
 }
 

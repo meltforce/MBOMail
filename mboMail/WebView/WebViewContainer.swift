@@ -225,6 +225,14 @@ final class WebViewStore {
 
         // Add permanent scripts
         addPermanentScripts()
+
+        // Compile and apply tracker blocking rules if enabled
+        if UserDefaults.standard.object(forKey: "trackerBlockingEnabled") == nil || UserDefaults.standard.bool(forKey: "trackerBlockingEnabled") {
+            Task {
+                await ContentBlocker.shared.compile()
+                ContentBlocker.shared.apply(to: controller)
+            }
+        }
     }
 
     // MARK: - Message Handler
