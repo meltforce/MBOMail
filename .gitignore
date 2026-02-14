@@ -1,0 +1,54 @@
+# Xcode
+DerivedData/
+*.pbxuser
+*.xcbkptlist
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/xcshareddata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/
+
+# Build artifacts
+build/
+.build/
+*.app/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+*.xcworkspace/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.editorconfig
+
+# Environment
+.env
+.env.local
+
+# Sparkle/Update artifacts
+*.dSYM/
+*.dsym
+*.delta
+*.bsdiff
+
+# DMG
+*.dmg
+
+# Misc
+*.log
+.cache/
