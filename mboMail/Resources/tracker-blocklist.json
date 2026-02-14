@@ -1,0 +1,282 @@
+[
+    {
+        "trigger": { "url-filter": ".*", "if-domain": ["mailchimp.com", "list-manage.com"] },
+        "action": { "type": "block", "selector": "img[src*='open.']" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.mailchimp\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.list-manage\\.com/track/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://open\\.tracker\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://pixel\\." },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://t\\.co/.*", "resource-type": ["image"] },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.sendgrid\\.net/wf/open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.sendgrid\\.net/.*\\.png", "resource-type": ["image"] },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://track\\.hubspot\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.hubspot\\.com/e[12]t/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.hubspotemail\\.net/.*\\.png", "resource-type": ["image"] },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.convertkit\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.getresponse\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.campaign-archive\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.constantcontact\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.mailgun\\.net/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.mailgun\\.org/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.postmarkapp\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.sendinblue\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.brevo\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.drip\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.intercom\\.io/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.intercom-mail\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.mixpanel\\.com/track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.amplitude\\.com/.*pixel" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.customerio\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.activecampaign\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.aweber\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.klaviyo\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.omnisend\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.sailthru\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.iterable\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.returnpath\\.net/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.litmus\\.com/.*pixel" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.yesware\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.streak\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.mailtrack\\.io/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.bananatag\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.superhuman\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.cirrusinsight\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.mandrillapp\\.com/track/open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.sparkpostmail\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.amazonses\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.sendy\\.co/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.mailerlite\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.moosend\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.pipedrive\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.close\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.zendesk\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.freshdesk\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.google-analytics\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.doubleclick\\.net/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://www\\.facebook\\.com/tr" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://connect\\.facebook\\.net/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://bat\\.bing\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://analytics\\.twitter\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.getnotify\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.readnotify\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.pointofmail\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.emailtrackerpro\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://cimg\\.co/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.outreach\\.io/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.salesloft\\.com/.*track" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.getsidekick\\.com/" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.tinyletterapp\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.substack\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.beehiiv\\.com/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.ghost\\.io/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.buttondown\\.email/.*open" },
+        "action": { "type": "block" }
+    },
+    {
+        "trigger": { "url-filter": "://[^/]*\\.revue\\.email/.*open" },
+        "action": { "type": "block" }
+    }
+]

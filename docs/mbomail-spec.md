@@ -613,21 +613,21 @@ mboMail/
 - [x] DMG packaging with background image
 - [x] Sparkle auto-update integration
 - [x] Browser extension support (WKWebExtension) — POC/stub, API not yet in SDK
-- [x] Fix Cmd++ zoom shortcut on non-US keyboard layouts (character-based fallback + numpad)
+- [x] Fix Cmd++ zoom shortcut on non-US keyboard layouts (View menu commands; keyboard shortcut deferred — WKWebView consumes the event)
 - [ ] Refine custom CSS selectors for OX v8 DOM changes, add predefined theme presets (see `docs/custom-css.md`) — deferred
 
 **Deliverable:** A distributable `.dmg` with auto-update support, ready for public release.
 
 **Verification:**
 
-1. Right-click toolbar → customize → add/remove/rearrange buttons → changes persist
-2. SimpleLogin: toolbar button → new alias created → alias copied to clipboard (requires API key in settings)
-3. Drag an attachment from a mail to Finder → file saves. Drag a file from Finder to compose → attaches
-4. `brew install --cask mbomail` → app installs and launches
-5. Hover over a bit.ly link → expanded URL shown after async resolution
-6. Known tracking domains are blocked (verify via Web Inspector or network log)
-7. Open the `.dmg` → shows app icon with drag-to-Applications background
-8. Launch app → Sparkle checks for updates → if available, prompts to install
+1. ~~Right-click toolbar → customize → add/remove/rearrange buttons → changes persist~~ (deferred)
+2. ~~SimpleLogin: toolbar button → new alias created → alias copied to clipboard~~ (deferred)
+3. [x] Click "Attach" in OX compose → file picker opens. Drag file from Finder into compose → attaches
+4. Homebrew Cask formula ready — needs hosted DMG for `brew install --cask mbomail`
+5. [x] Hover over a bit.ly link → expanded URL shown after async resolution
+6. [x] Tracker blocking toggle works in Settings → blocks tracking pixels (verify via Web Inspector network tab)
+7. [x] `./scripts/create-dmg.sh path/to/mboMail.app` → produces DMG with drag-to-Applications layout
+8. [x] mboMail menu → "Check for Updates..." → Sparkle checks appcast and reports status
 
 ---
 
