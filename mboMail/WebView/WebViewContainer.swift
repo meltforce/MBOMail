@@ -74,7 +74,6 @@ struct WebViewContainer: NSViewRepresentable {
             let js = UserDefaults.standard.string(forKey: "customJS") ?? ""
             webViewStore.injectCustomStyles(css: css)
             webViewStore.injectCustomScripts(js: js)
-            webViewStore.syncComposeFlag(appSettings.composeInSeparateWindow)
             webViewStore.startUnreadPollTimer()
         }
 
@@ -165,93 +164,6 @@ final class WebViewStore {
                 });
             });
             obs.observe(document.body, { childList: true, subtree: true });
-        })();
-        """
-
-    static let composeInterceptJS = """
-        (function() {
-            if (window._mboComposeInterceptInstalled) return;
-            window._mboComposeInterceptInstalled = true;
-            window._mboComposeInSeparateWindow = false;
-
-            function notify(action) {
-                console.log('[MBOMail] compose intercept: ' + action);
-                window.webkit.messageHandlers.mbomail.postMessage({
-                    type: 'composeRequest',
-                    action: action || 'compose',
-                    url: window.location.href
-                });
-            }
-
-            // 1. Intercept clicks (capture phase, before OX handles them)
-            document.addEventListener('click', function(e) {
-                if (!window._mboComposeInSeparateWindow) return;
-                var el = e.target;
-                while (el && el !== document.body) {
-                    // OX compose button: .primary-action > .btn-group > button.btn-primary
-                    if (el.closest && el.closest('.primary-action')) {
-                        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-                        notify('compose-btn');
-                        return;
-                    }
-                    // OX reply/forward: button[data-action="io.ox/mail/actions/reply|reply-all|forward"]
-                    var da = el.getAttribute && el.getAttribute('data-action');
-                    if (da && /^io\\.ox\\/mail\\/actions\\/(reply|reply-all|forward)$/.test(da)) {
-                        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-                        notify('click:' + da);
-                        return;
-                    }
-                    el = el.parentElement;
-                }
-            }, true);
-
-            // 2. Intercept 'c' keyboard shortcut (OX compose hotkey)
-            document.addEventListener('keydown', function(e) {
-                if (!window._mboComposeInSeparateWindow) return;
-                if (e.key === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-                    var tag = (e.target.tagName || '').toLowerCase();
-                    if (tag !== 'input' && tag !== 'textarea' && !e.target.isContentEditable) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-                        notify('compose-key');
-                    }
-                }
-            }, true);
-
-            // 3. Safety net: if OX compose window appears in DOM despite interception,
-            //    close it and open native window instead
-            var composeObserver = new MutationObserver(function(mutations) {
-                if (!window._mboComposeInSeparateWindow) return;
-                for (var i = 0; i < mutations.length; i++) {
-                    var added = mutations[i].addedNodes;
-                    for (var j = 0; j < added.length; j++) {
-                        var node = added[j];
-                        if (node.nodeType !== 1) continue;
-                        var isCompose = node.classList && node.classList.contains('io-ox-mail-compose-window');
-                        if (!isCompose && node.querySelector) {
-                            isCompose = !!node.querySelector('.io-ox-mail-compose-window');
-                        }
-                        if (isCompose) {
-                            console.log('[MBOMail] compose DOM appeared, closing and routing to native window');
-                            // Find and click the close button on the OX compose window
-                            var win = node.classList.contains('io-ox-mail-compose-window') ? node : node.querySelector('.io-ox-mail-compose-window');
-                            if (win) {
-                                var closeBtn = win.querySelector('.window-close, [data-action="close"]');
-                                if (closeBtn) closeBtn.click();
-                                else win.remove();
-                            }
-                            notify('dom-fallback');
-                            return;
-                        }
-                    }
-                }
-            });
-            if (document.body) {
-                composeObserver.observe(document.body, { childList: true, subtree: true });
-            }
-
-            console.log('[MBOMail] compose intercept installed');
         })();
         """
 
@@ -373,33 +285,8 @@ final class WebViewStore {
             injectionTime: .atDocumentEnd,
             forMainFrameOnly: true
         )
-        let composeScript = WKUserScript(
-            source: Self.composeInterceptJS,
-            injectionTime: .atDocumentEnd,
-            forMainFrameOnly: true
-        )
         userContentController.addUserScript(hoverScript)
         userContentController.addUserScript(unreadScript)
-        userContentController.addUserScript(composeScript)
-    }
-
-    // MARK: - Compose Flag
-
-    func syncComposeFlag(_ enabled: Bool) {
-        webView.evaluateJavaScript("window._mboComposeInSeparateWindow = \(enabled)")
-    }
-
-    /// Open compose via window.open() so the new window inherits sessionStorage.
-    /// Triggers createWebViewWith which wraps the WKWebView in a compose NSWindow.
-    func openComposeViaWindowOpen(parameters: [String: String] = [:]) {
-        var fragment = "#!!&app=io.ox/mail&folder=default0/INBOX&action=compose"
-        for (key, value) in parameters {
-            let encoded = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
-            fragment += "&\(key)=\(encoded)"
-        }
-        let composeURL = "https://app.mailbox.org/appsuite/\(fragment)"
-        let escapedURL = composeURL.replacingOccurrences(of: "'", with: "\\'")
-        webView.evaluateJavaScript("window.open('\(escapedURL)')")
     }
 
     // MARK: - Native Unread Poll Timer

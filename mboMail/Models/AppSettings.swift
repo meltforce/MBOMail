@@ -59,13 +59,6 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(onlyNotifyInbox, forKey: "onlyNotifyInbox") }
     }
 
-    var composeInSeparateWindow: Bool {
-        didSet {
-            UserDefaults.standard.set(composeInSeparateWindow, forKey: "composeInSeparateWindow")
-            NotificationCenter.default.post(name: .composeSettingChanged, object: nil)
-        }
-    }
-
     var defaultMailClientState = false
 
     init() {
@@ -75,7 +68,6 @@ final class AppSettings {
         notificationsEnabled = ud.object(forKey: "notificationsEnabled") == nil ? true : ud.bool(forKey: "notificationsEnabled")
         notificationSound = ud.string(forKey: "notificationSound") ?? "default"
         onlyNotifyInbox = ud.object(forKey: "onlyNotifyInbox") == nil ? true : ud.bool(forKey: "onlyNotifyInbox")
-        composeInSeparateWindow = ud.bool(forKey: "composeInSeparateWindow")
     }
 
     func checkDefaultMailClient() {

@@ -60,7 +60,6 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
         // Re-inject permanent scripts and custom CSS/JS after each navigation
         webView.evaluateJavaScript(WebViewStore.linkHoverJS)
         webView.evaluateJavaScript(WebViewStore.unreadObserverJS)
-        webView.evaluateJavaScript(WebViewStore.composeInterceptJS)
         onPageLoaded?()
     }
 
@@ -95,14 +94,8 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = navigationAction.request.url {
-            // Route compose popups to separate window when enabled
             if let host = url.host, host.hasSuffix("mailbox.org") {
-                let urlString = url.absoluteString
-                if parent.appSettings.composeInSeparateWindow,
-                   urlString.contains("action=compose") || urlString.contains("app=io.ox/mail/compose") {
-                    ComposeWindowManager.shared.openComposeWindow(url: url)
-                    return nil
-                }
+                // mailbox.org popup: load in existing webView
                 webView.load(navigationAction.request)
             } else {
                 NSWorkspace.shared.open(url)
@@ -145,12 +138,6 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
             case "messageId":
                 let value = body["value"] as? String ?? ""
                 onMessageId?(value)
-            case "composeRequest":
-                let action = body["action"] as? String ?? "unknown"
-                print("[MBOMail] composeRequest received, action: \(action), separateWindow: \(parent.appSettings.composeInSeparateWindow)")
-                if parent.appSettings.composeInSeparateWindow {
-                    ComposeWindowManager.shared.openComposeWindow()
-                }
             default:
                 break
             }

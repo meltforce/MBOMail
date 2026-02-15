@@ -176,5 +176,4 @@ extension Notification.Name {
     static let copyMailLink = Notification.Name("copyMailLink")
     static let printMail = Notification.Name("printMail")
     static let reloadPage = Notification.Name("reloadPage")
-    static let composeSettingChanged = Notification.Name("composeSettingChanged")
 }

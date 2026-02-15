@@ -12,7 +12,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		159421E62F3F40FC005772F4 /* mboMail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mboMail.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		159421E62F3F40FC005772F4 /* MBOMail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MBOMail.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -60,7 +60,7 @@
 		159421E72F3F40FC005772F4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				159421E62F3F40FC005772F4 /* mboMail.app */,
+				159421E62F3F40FC005772F4 /* MBOMail.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -89,7 +89,7 @@
 				1594220E2F4A0002005772F4 /* Sparkle */,
 			);
 			productName = mboMail;
-			productReference = 159421E62F3F40FC005772F4 /* mboMail.app */;
+			productReference = 159421E62F3F40FC005772F4 /* MBOMail.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */

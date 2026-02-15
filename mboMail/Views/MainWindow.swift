@@ -42,11 +42,7 @@ struct MainWindow: View {
             .onOpenURL { url in
                 if url.scheme == "mailto" {
                     let params = MailtoHandler.parse(url)
-                    if appSettings.composeInSeparateWindow {
-                        ComposeWindowManager.shared.openComposeWindow(parameters: params)
-                    } else {
-                        webViewStore.navigateToCompose(parameters: params)
-                    }
+                    webViewStore.navigateToCompose(parameters: params)
                 }
             }
     }
@@ -258,10 +254,6 @@ private struct SettingsHandlers: ViewModifier {
             }
             .onChange(of: appSettings.customJS) { _, newJS in
                 webViewStore.injectCustomScripts(js: newJS)
-            }
-            .onChange(of: appSettings.composeInSeparateWindow) { _, enabled in
-                webViewStore.syncComposeFlag(enabled)
-                webViewStore.reload()
             }
     }
 }

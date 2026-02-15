@@ -99,12 +99,6 @@ private struct UserInterfaceSettingsTab: View {
                         .foregroundStyle(.secondary)
                 }
                 Toggle("Hide when losing focus", isOn: $settings.autoHideOnFocusLoss)
-                Toggle(isOn: $settings.composeInSeparateWindow) {
-                    Text("Compose email in separate window")
-                    Text("Also by pressing the default shortcut \u{2018}c\u{2019}")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
 
             Section("Notifications") {
