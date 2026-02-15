@@ -587,6 +587,16 @@ footer nav {
   color: var(--text);
 }
 
+.footer-link-inline {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-link-inline:hover {
+  color: var(--text);
+}
+
 /* --- Legal page --- */
 
 .legal {
