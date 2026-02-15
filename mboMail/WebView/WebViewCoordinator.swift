@@ -24,7 +24,7 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
         guard let url = navigationAction.request.url else { return .allow }
 
         // Allow mailbox.org URLs
-        if let host = url.host, host.hasSuffix("mailbox.org") {
+        if let host = url.host, host.hasSuffix(AppConstants.hostSuffix) {
             // Cmd+click on mailbox.org link → open in new tab
             if navigationAction.navigationType == .linkActivated,
                navigationAction.modifierFlags.contains(.command) {
@@ -94,7 +94,7 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = navigationAction.request.url {
-            if let host = url.host, host.hasSuffix("mailbox.org") {
+            if let host = url.host, host.hasSuffix(AppConstants.hostSuffix) {
                 // mailbox.org popup: load in existing webView
                 webView.load(navigationAction.request)
             } else {

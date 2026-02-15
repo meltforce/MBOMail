@@ -121,7 +121,7 @@ struct MainWindow: View {
     private var loadingOverlay: some View {
         ZStack {
             Color(nsColor: .windowBackgroundColor)
-            ProgressView("Loading mailbox.org...")
+            ProgressView("Loading \(AppConstants.serviceName)...")
                 .progressViewStyle(.circular)
                 .scaleEffect(1.2)
         }
@@ -136,7 +136,7 @@ struct MainWindow: View {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text("Unable to load mailbox.org")
+                Text("Unable to load \(AppConstants.serviceName)")
                     .font(.title2)
                 Text(error.localizedDescription)
                     .font(.body)

@@ -79,7 +79,7 @@ struct WebViewContainer: NSViewRepresentable {
 
         // Load pending URL (from Cmd+click) or default mailbox.org
         if webView.url == nil {
-            let url = PendingTabNavigation.shared.pendingURL ?? URL(string: "https://app.mailbox.org/appsuite/")!
+            let url = PendingTabNavigation.shared.pendingURL ?? AppConstants.baseURL
             PendingTabNavigation.shared.pendingURL = nil
             webView.load(URLRequest(url: url))
         }
@@ -99,131 +99,23 @@ final class WebViewStore {
     let userContentController: WKUserContentController
     private var unreadPollTimer: Timer?
 
-    // MARK: - JS Constants
+    // MARK: - JS loaded from bundle resources
 
-    static let linkHoverJS = """
-        (function() {
-            if (window._mboLinkHoverInstalled) return;
-            window._mboLinkHoverInstalled = true;
+    static let linkHoverJS: String = loadBundleJS("link-hover")
+    static let unreadObserverJS: String = loadBundleJS("unread-observer")
 
-            function postHover(url) {
-                window.webkit.messageHandlers.mbomail.postMessage({
-                    type: 'linkHover',
-                    url: url
-                });
-            }
+    private static func loadBundleJS(_ name: String) -> String {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "js"),
+              let source = try? String(contentsOf: url, encoding: .utf8) else {
+            assertionFailure("Missing JS resource: \(name).js")
+            return ""
+        }
+        return source
+    }
 
-            // Listen on the main document
-            document.addEventListener('mouseover', function(e) {
-                var link = e.target.closest('a[href]');
-                if (link) postHover(link.href);
-            }, true);
-            document.addEventListener('mouseout', function(e) {
-                var link = e.target.closest('a[href]');
-                if (link) postHover('');
-            }, true);
-
-            // Inject hover listeners into iframes (mail detail frames)
-            function injectIntoIframe(iframe) {
-                try {
-                    var doc = iframe.contentDocument;
-                    if (!doc || doc._mboHoverInjected) return;
-                    doc._mboHoverInjected = true;
-                    doc.addEventListener('mouseover', function(e) {
-                        var link = e.target.closest('a[href]');
-                        if (link) postHover(link.href);
-                    }, true);
-                    doc.addEventListener('mouseout', function(e) {
-                        var link = e.target.closest('a[href]');
-                        if (link) postHover('');
-                    }, true);
-                } catch(e) {}
-            }
-
-            // Inject into existing iframes
-            document.querySelectorAll('iframe').forEach(function(f) {
-                if (f.contentDocument) injectIntoIframe(f);
-                f.addEventListener('load', function() { injectIntoIframe(f); });
-            });
-
-            // Watch for new iframes being added
-            var obs = new MutationObserver(function(mutations) {
-                mutations.forEach(function(m) {
-                    m.addedNodes.forEach(function(n) {
-                        if (n.tagName === 'IFRAME') {
-                            if (n.contentDocument) injectIntoIframe(n);
-                            n.addEventListener('load', function() { injectIntoIframe(n); });
-                        }
-                        if (n.querySelectorAll) {
-                            n.querySelectorAll('iframe').forEach(function(f) {
-                                if (f.contentDocument) injectIntoIframe(f);
-                                f.addEventListener('load', function() { injectIntoIframe(f); });
-                            });
-                        }
-                    });
-                });
-            });
-            obs.observe(document.body, { childList: true, subtree: true });
-        })();
-        """
-
-    static let unreadObserverJS = """
-        (function() {
-            // Clean up previous observers/timers to prevent duplicates on re-injection
-            if (window._mboUnreadInterval) clearInterval(window._mboUnreadInterval);
-            if (window._mboUnreadObserver) window._mboUnreadObserver.disconnect();
-            if (window._mboDebounceTimer) clearTimeout(window._mboDebounceTimer);
-
-            function getUnreadInfo() {
-                var nodes = document.querySelectorAll('.folder-node');
-                var count = 0;
-                for (var i = 0; i < nodes.length; i++) {
-                    var text = nodes[i].textContent || '';
-                    if (text.indexOf('Posteingang') !== -1 || text.indexOf('Inbox') !== -1) {
-                        var counter = nodes[i].querySelector('.folder-counter');
-                        if (counter) count = parseInt(counter.textContent, 10) || 0;
-                        break;
-                    }
-                }
-                // Extract newest unread email's subject and sender from the mail list
-                var newest = document.querySelector('.list-item.unread');
-                var subject = '';
-                var from = '';
-                if (newest) {
-                    var subEl = newest.querySelector('.subject');
-                    var fromEl = newest.querySelector('.from');
-                    if (subEl) subject = subEl.textContent.trim();
-                    if (fromEl) from = fromEl.textContent.trim();
-                }
-                window.webkit.messageHandlers.mbomail.postMessage({
-                    type: 'unreadCount',
-                    count: count,
-                    subject: subject,
-                    from: from
-                });
-            }
-
-            // Debounced wrapper: waits for DOM mutations to settle before reading.
-            // Prevents rapid-fire postMessage calls when multiple emails arrive at once.
-            function debouncedGetUnreadInfo() {
-                if (window._mboDebounceTimer) clearTimeout(window._mboDebounceTimer);
-                window._mboDebounceTimer = setTimeout(function() {
-                    window._mboDebounceTimer = null;
-                    getUnreadInfo();
-                }, 1500);
-            }
-
-            setTimeout(getUnreadInfo, 2000);
-
-            var folderTree = document.querySelector('.tree-container, .folder-tree');
-            if (folderTree) {
-                window._mboUnreadObserver = new MutationObserver(function() { debouncedGetUnreadInfo(); });
-                window._mboUnreadObserver.observe(folderTree, { childList: true, subtree: true, characterData: true });
-            }
-
-            window._mboUnreadInterval = setInterval(getUnreadInfo, 30000);
-        })();
-        """
+    deinit {
+        unreadPollTimer?.invalidate()
+    }
 
     init() {
         let config = WKWebViewConfiguration()
@@ -294,30 +186,7 @@ final class WebViewStore {
     /// JS snippet that reads the unread count from the DOM and posts it back to Swift.
     /// Called from a Swift Timer so it fires even when the window is minimized
     /// (WKWebView throttles its own setInterval when not visible).
-    private static let unreadPollSnippet = """
-        (function() {
-            var nodes = document.querySelectorAll('.folder-node');
-            var count = 0;
-            for (var i = 0; i < nodes.length; i++) {
-                var text = nodes[i].textContent || '';
-                if (text.indexOf('Posteingang') !== -1 || text.indexOf('Inbox') !== -1) {
-                    var counter = nodes[i].querySelector('.folder-counter');
-                    if (counter) count = parseInt(counter.textContent, 10) || 0;
-                    break;
-                }
-            }
-            var newest = document.querySelector('.list-item.unread');
-            var subject = '';
-            var from = '';
-            if (newest) {
-                var subEl = newest.querySelector('.subject');
-                var fromEl = newest.querySelector('.from');
-                if (subEl) subject = subEl.textContent.trim();
-                if (fromEl) from = fromEl.textContent.trim();
-            }
-            window.webkit.messageHandlers.mbomail.postMessage({ type: 'unreadCount', count: count, subject: subject, from: from });
-        })();
-        """
+    private static let unreadPollSnippet: String = loadBundleJS("unread-poll")
 
     func startUnreadPollTimer() {
         unreadPollTimer?.invalidate()
@@ -436,7 +305,7 @@ final class WebViewStore {
         self.printHelper = helper
         printWV.navigationDelegate = helper
 
-        printWV.loadHTMLString(html, baseURL: URL(string: "https://app.mailbox.org"))
+        printWV.loadHTMLString(html, baseURL: AppConstants.baseURL)
     }
 
     func reload() {
@@ -452,8 +321,7 @@ final class WebViewStore {
     }
 
     func loadMailboxOrg() {
-        let url = URL(string: "https://app.mailbox.org/appsuite/")!
-        webView.load(URLRequest(url: url))
+        webView.load(URLRequest(url: AppConstants.baseURL))
     }
 
     func navigateToCompose(parameters: [String: String] = [:]) {
@@ -461,7 +329,7 @@ final class WebViewStore {
         for (key, value) in parameters {
             fragment += "&\(key)=\(value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value)"
         }
-        let urlString = "https://app.mailbox.org/appsuite/\(fragment)"
+        let urlString = AppConstants.baseURL.absoluteString + fragment
         if let url = URL(string: urlString) {
             webView.load(URLRequest(url: url))
         }

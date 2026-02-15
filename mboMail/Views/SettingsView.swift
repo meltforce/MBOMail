@@ -236,6 +236,7 @@ private struct AdvancedSettingsTab: View {
                     .frame(minHeight: 80)
             }
 
+            #if DEBUG
             Section {
                 let manager = ExtensionManager.shared
                 if manager.extensions.isEmpty {
@@ -281,6 +282,7 @@ private struct AdvancedSettingsTab: View {
                 Text("Load .appex bundles to extend MBOMail. This feature is experimental.")
                     .font(.caption)
             }
+            #endif
         }
         .formStyle(.grouped)
     }
@@ -292,23 +294,47 @@ private struct DonationSettingsTab: View {
     var body: some View {
         Form {
             Section {
-                Text("MBOMail offers all functionality for free. If you'd like to support its development, you can buy me a coffee or make a small donation.")
-                Text("No pressure \u{2014} just gratitude!")
-                    .foregroundStyle(.secondary)
+                Text("MBOMail is free and open source. If you like it, you can support my work by buying me some tokens to feed my agent.")
+                    .padding(.bottom, 4)
 
-                HStack {
-                    Button("Buy Me a Coffee") {
-                        // placeholder
-                    }
-                    .disabled(true)
-
-                    Button("Donate via PayPal") {
-                        // placeholder
-                    }
-                    .disabled(true)
+                VStack(alignment: .leading, spacing: 12) {
+                    DonationLink(
+                        urlString: "https://www.buymeacoffee.com/meltforce",
+                        icon: "cup.and.saucer.fill",
+                        title: "Buy Me a Coffee"
+                    )
+                    DonationLink(
+                        urlString: "https://github.com/sponsors/meltforce",
+                        icon: "heart.fill",
+                        title: "Sponsor on GitHub"
+                    )
+                    DonationLink(
+                        urlString: "https://www.paypal.com/paypalme/linusch",
+                        icon: "creditcard.fill",
+                        title: "Donate via PayPal"
+                    )
                 }
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: - Helpers
+
+private struct DonationLink: View {
+    let urlString: String
+    let icon: String
+    let title: String
+
+    var body: some View {
+        if let url = URL(string: urlString) {
+            Link(destination: url) {
+                HStack {
+                    Image(systemName: icon)
+                    Text(title)
+                }
+            }
+        }
     }
 }
