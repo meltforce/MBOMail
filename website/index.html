@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MBOMail — A native macOS app for mailbox.org</title>
+  <meta name="description" content="MBOMail wraps mailbox.org into a native macOS application with deep system integration, privacy features, and keyboard shortcuts.">
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-brand">
+        <img src="images/icon.png" alt="MBOMail icon">
+        MBOMail
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#download">Download</a></li>
+        <li><a href="https://github.com/meltforce/MBOMail" target="_blank">GitHub</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1>Your mailbox.org,<br>as a <span>real Mac app</span></h1>
+      <p>MBOMail wraps mailbox.org into a native macOS application with deep system integration, privacy protection, and the keyboard shortcuts you expect.</p>
+      <div class="hero-actions">
+        <a href="#download" class="btn-primary">
+          <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 1v10m0 0L4 7m4 4l4-4M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download
+        </a>
+        <a href="#features" class="btn-secondary">See features</a>
+      </div>
+      <div class="hero-screenshot">
+        <img src="images/screenshot.png" alt="MBOMail showing the mailbox.org inbox as a native macOS window">
+      </div>
+    </div>
+  </section>
+
+  <!-- Features grid -->
+  <section class="features" id="features">
+    <div class="container">
+      <span class="section-label">Features</span>
+      <h2>Everything you'd expect from a mail app</h2>
+      <p>All the mailbox.org features you love, with the native macOS integration you've been missing.</p>
+
+      <div class="feature-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">&#9889;</div>
+          <h3>Instant access</h3>
+          <p>Set a global keyboard shortcut to toggle MBOMail from anywhere, or click the menu bar icon. Your inbox is always one gesture away.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#128276;</div>
+          <h3>Native notifications</h3>
+          <p>Get macOS notifications when new mail arrives &mdash; with sender and subject &mdash; even when the app is minimized or hidden.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#128274;</div>
+          <h3>Tracker blocking</h3>
+          <p>Built-in protection against email tracking pixels and third-party cookies. Browse your inbox privately, without add-ons.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#128196;</div>
+          <h3>Unread badge</h3>
+          <p>See your unread count at a glance on the Dock icon, so you always know when new messages are waiting.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#127912;</div>
+          <h3>Custom appearance</h3>
+          <p>Inject your own CSS to customize the look and feel of mailbox.org. Make it yours with custom themes and tweaks.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#9993;</div>
+          <h3>Default mail app</h3>
+          <p>Set MBOMail as your default email client. Clicking mailto: links anywhere on your Mac opens a compose window right in MBOMail.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#127761;</div>
+          <h3>Dark mode</h3>
+          <p>Full dark mode support that follows your macOS system appearance. Easy on your eyes, day and night.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#128279;</div>
+          <h3>Link inspection</h3>
+          <p>Hover over any link to see where it actually goes. Shortened URLs are automatically expanded so you can verify before clicking.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">&#128260;</div>
+          <h3>Auto-updates</h3>
+          <p>MBOMail keeps itself up to date in the background. New features and fixes are delivered automatically.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Highlight sections -->
+  <section class="highlights">
+    <div class="container">
+
+      <div class="highlight-row">
+        <div class="highlight-text">
+          <h3>Always within reach</h3>
+          <p>Configure a global hotkey to bring up your inbox instantly, no matter what app you're in. The menu bar icon shows your unread count and lets you toggle the window with a single click. You can also set MBOMail to hide automatically when you switch to another app &mdash; it stays out of your way until you need it.</p>
+        </div>
+        <div class="highlight-visual">
+          <div class="shortcut-demo">
+            <span class="key">&#8997;</span>
+            <span style="color: var(--gray-400);">+</span>
+            <span class="key">M</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="highlight-row">
+        <div class="highlight-text">
+          <h3>Your inbox, your rules</h3>
+          <p>Inject custom CSS to restyle the interface, block distracting elements, or build an entirely new look. MBOMail also supports custom JavaScript for power users who want to extend the functionality even further. Settings are organized in clear tabs for General, UI, Shortcuts, and Advanced options.</p>
+        </div>
+        <div class="highlight-visual">
+          <div style="font-family: 'SF Mono', SFMono-Regular, Menlo, monospace; font-size: 14px; color: var(--gray-800); line-height: 1.8; text-align: left;">
+            <span style="color: var(--blue-600);">.folder-tree</span> {<br>
+            &nbsp;&nbsp;background: <span style="color: #7c3aed;">#1a1a2e</span>;<br>
+            }<br>
+            <span style="color: var(--blue-600);">.mail-detail</span> {<br>
+            &nbsp;&nbsp;font-size: <span style="color: #7c3aed;">15px</span>;<br>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="highlight-row">
+        <div class="highlight-text">
+          <h3>Know at a glance</h3>
+          <p>The Dock icon badge shows your unread count without you having to open the app. Native macOS notifications display the sender and subject of new messages as they arrive, so you never miss anything important &mdash; even when MBOMail is in the background.</p>
+        </div>
+        <div class="highlight-visual">
+          <div class="badge-demo">
+            <img src="images/icon.png" alt="MBOMail icon with badge">
+            <span class="badge">3</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Download CTA -->
+  <section class="cta" id="download">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Get MBOMail</h2>
+        <p>Free and open source. Requires macOS 15 or later.</p>
+        <a href="https://github.com/meltforce/MBOMail/releases/latest" class="btn-primary" style="margin-bottom: 16px;">
+          <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 1v10m0 0L4 7m4 4l4-4M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download DMG
+        </a>
+        <p class="install-note">View all releases on <a href="https://github.com/meltforce/MBOMail/releases" style="color: var(--blue-600);">GitHub</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 MBOMail</p>
+      <nav>
+        <ul class="footer-links">
+          <li><a href="https://github.com/meltforce/MBOMail" target="_blank">GitHub</a></li>
+          <li><a href="legal.html">Legal</a></li>
+        </ul>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>
