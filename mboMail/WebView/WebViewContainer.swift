@@ -69,7 +69,7 @@ struct WebViewContainer: NSViewRepresentable {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(link, forType: .string)
         }
-        coordinator.onPageLoaded = { [webViewStore, appSettings] in
+        coordinator.onPageLoaded = { [webViewStore] in
             let css = UserDefaults.standard.string(forKey: "customCSS") ?? ""
             let js = UserDefaults.standard.string(forKey: "customJS") ?? ""
             webViewStore.injectCustomStyles(css: css)
@@ -102,8 +102,6 @@ struct WebViewContainer: NSViewRepresentable {
 @Observable
 final class WebViewStore {
 
-    static let sharedProcessPool = WKProcessPool()
-
     let webView: WKWebView
     let userContentController: WKUserContentController
     private var unreadPollTimer: Timer?
@@ -132,7 +130,6 @@ final class WebViewStore {
         config.preferences.isElementFullscreenEnabled = true
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
         config.websiteDataStore = .default()
-        config.processPool = Self.sharedProcessPool
 
         let controller = WKUserContentController()
         config.userContentController = controller
@@ -162,7 +159,7 @@ final class WebViewStore {
         if UserDefaults.standard.object(forKey: "trackerBlockingEnabled") == nil || UserDefaults.standard.bool(forKey: "trackerBlockingEnabled") {
             Task {
                 await ContentBlocker.shared.compile()
-                ContentBlocker.shared.apply(to: controller)
+                await ContentBlocker.shared.apply(to: controller)
             }
         }
     }
@@ -290,7 +287,7 @@ final class WebViewStore {
     private var printWindow: NSWindow?
     private var printHelper: PrintHelper?
 
-    private func showPrintWindow(html: String) {
+    @MainActor private func showPrintWindow(html: String) {
         let config = WKWebViewConfiguration()
         let printWV = WKWebView(frame: NSRect(x: 0, y: 0, width: 700, height: 900), configuration: config)
 
