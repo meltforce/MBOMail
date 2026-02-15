@@ -2,7 +2,7 @@
 
 A native macOS wrapper for [mailbox.org](https://mailbox.org), built with SwiftUI and WKWebView. No Electron.
 
-Inspired by [FMail 3](https://fmail3.appmac.fr/) by Arie van Boxel, which does the same thing beautifully for Fastmail. MBOMail brings that same idea to mailbox.org — a lightweight, sandboxed macOS app with deep system integration that a browser tab can't provide.
+Inspired by [FMail 3](https://fmail3.appmac.fr/) by Arie van Boxel, which does this beautifully for Fastmail. MBOMail brings that same idea to mailbox.org — a lightweight, sandboxed macOS app with deep system integration that a browser tab can't provide.
 
 > **Full disclosure:** This app was built entirely with [Claude Code](https://claude.ai/claude-code) and has not been fully reviewed or verified by a human. I tested it myself and found it to be reliable and secure in my own usage. Use at your own discretion.
 
