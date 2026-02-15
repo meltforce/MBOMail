@@ -1,8 +1,26 @@
 import SwiftUI
 import ServiceManagement
 
+enum AppearanceMode: String, CaseIterable {
+    case system = "system"
+    case light = "light"
+    case dark = "dark"
+
+    var label: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+}
+
 @Observable
 final class AppSettings {
+
+    var appearanceMode: AppearanceMode {
+        didSet { UserDefaults.standard.set(appearanceMode.rawValue, forKey: "appearanceMode") }
+    }
 
     var zoomLevel: Double {
         get { UserDefaults.standard.double(forKey: "zoomLevel").nonZero ?? 1.0 }
@@ -64,6 +82,7 @@ final class AppSettings {
     init() {
         let ud = UserDefaults.standard
 
+        appearanceMode = AppearanceMode(rawValue: ud.string(forKey: "appearanceMode") ?? "system") ?? .system
         trackerBlockingEnabled = ud.object(forKey: "trackerBlockingEnabled") == nil ? true : ud.bool(forKey: "trackerBlockingEnabled")
         notificationsEnabled = ud.object(forKey: "notificationsEnabled") == nil ? true : ud.bool(forKey: "notificationsEnabled")
         notificationSound = ud.string(forKey: "notificationSound") ?? "default"

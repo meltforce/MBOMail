@@ -83,6 +83,9 @@ struct WebViewContainer: NSViewRepresentable {
             }
         }
 
+        // Apply persisted appearance mode
+        webViewStore.applyAppearance(appSettings.appearanceMode)
+
         // Load pending URL (from Cmd+click) or default mailbox.org
         if webView.url == nil {
             let url = PendingTabNavigation.shared.pendingURL ?? AppConstants.baseURL
@@ -406,6 +409,17 @@ final class WebViewStore {
             webView.evaluateJavaScript(js)
         } else {
             pendingMailtoParams = parameters
+        }
+    }
+
+    func applyAppearance(_ mode: AppearanceMode) {
+        switch mode {
+        case .system:
+            webView.appearance = nil
+        case .light:
+            webView.appearance = NSAppearance(named: .aqua)
+        case .dark:
+            webView.appearance = NSAppearance(named: .darkAqua)
         }
     }
 

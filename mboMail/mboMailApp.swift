@@ -63,6 +63,15 @@ struct MBOMailApp: App {
                     NotificationCenter.default.post(name: .zoomReset, object: nil)
                 }
                 .keyboardShortcut("0", modifiers: .command)
+
+                Divider()
+
+                Picker("Appearance", selection: $appSettings.appearanceMode) {
+                    ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .pickerStyle(.inline)
             }
         }
 

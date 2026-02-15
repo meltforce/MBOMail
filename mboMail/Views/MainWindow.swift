@@ -259,6 +259,9 @@ private struct SettingsHandlers: ViewModifier {
             .onChange(of: appSettings.customJS) { _, newJS in
                 webViewStore.injectCustomScripts(js: newJS)
             }
+            .onChange(of: appSettings.appearanceMode) { _, mode in
+                webViewStore.applyAppearance(mode)
+            }
     }
 }
 
