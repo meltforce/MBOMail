@@ -70,7 +70,8 @@ jobs:
             -destination 'platform=macOS' \
             -configuration Release \
             -archivePath "$BUILD_DIR/$SCHEME.xcarchive" \
-            DEVELOPMENT_TEAM=R43S29F4G5
+            DEVELOPMENT_TEAM=R43S29F4G5 \
+            ENABLE_HARDENED_RUNTIME=YES
 
       - name: Export archive
         run: |
