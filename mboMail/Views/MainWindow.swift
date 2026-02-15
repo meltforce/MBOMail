@@ -29,6 +29,11 @@ struct MainWindow: View {
                 NewTabAction.shared.register { [openWindow] in
                     openWindow(id: "main")
                 }
+                // Pick up mailto params from cold start (arrived before this view existed)
+                if let params = AppDelegate.pendingMailtoParams {
+                    AppDelegate.pendingMailtoParams = nil
+                    webViewStore.pendingMailtoParams = params
+                }
             }
             .onChange(of: networkMonitor.isConnected) { _, isConnected in
                 if isConnected && wasDisconnected {
@@ -39,9 +44,8 @@ struct MainWindow: View {
                     wasDisconnected = true
                 }
             }
-            .onOpenURL { url in
-                if url.scheme == "mailto" {
-                    let params = MailtoHandler.parse(url)
+            .onReceive(NotificationCenter.default.publisher(for: .handleMailto)) { notification in
+                if let params = notification.userInfo as? [String: String] {
                     webViewStore.navigateToCompose(parameters: params)
                 }
             }

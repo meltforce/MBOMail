@@ -75,6 +75,12 @@ struct WebViewContainer: NSViewRepresentable {
             webViewStore.injectCustomStyles(css: css)
             webViewStore.injectCustomScripts(js: js)
             webViewStore.startUnreadPollTimer()
+
+            // Handle pending mailto compose (cold start from mailto: link)
+            if let params = webViewStore.pendingMailtoParams {
+                webViewStore.pendingMailtoParams = nil
+                webViewStore.navigateToCompose(parameters: params)
+            }
         }
 
         // Load pending URL (from Cmd+click) or default mailbox.org
@@ -324,14 +330,82 @@ final class WebViewStore {
         webView.load(URLRequest(url: AppConstants.baseURL))
     }
 
+    /// Mailto parameters waiting to be applied after OX finishes loading (cold start).
+    var pendingMailtoParams: [String: String]?
+
     func navigateToCompose(parameters: [String: String] = [:]) {
-        var fragment = "#!!&app=io.ox/mail&folder=default0/INBOX&action=compose"
-        for (key, value) in parameters {
-            fragment += "&\(key)=\(value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value)"
+        // Build JSON params for the JS side
+        let jsonPairs = parameters.map { key, value -> String in
+            let escapedValue = value
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+            return "'\(key)': '\(escapedValue)'"
         }
-        let urlString = AppConstants.baseURL.absoluteString + fragment
-        if let url = URL(string: urlString) {
-            webView.load(URLRequest(url: url))
+        let jsonObj = "{\(jsonPairs.joined(separator: ", "))}"
+
+        // If OX is loaded in the webview, trigger compose via JS.
+        // Otherwise store params and apply after OX finishes loading.
+        if let currentURL = webView.url,
+           let host = currentURL.host,
+           host.hasSuffix(AppConstants.hostSuffix) {
+            let js = """
+                (function() {
+                    var params = \(jsonObj);
+                    function tryCompose() {
+                        // Wait for OX to be fully loaded
+                        var composeBtn = document.querySelector('.primary-action .btn-primary, a[data-action="io.ox/mail/actions/compose"]');
+                        if (!composeBtn) {
+                            setTimeout(tryCompose, 300);
+                            return;
+                        }
+                        // Click the compose button
+                        composeBtn.click();
+                        // Wait for compose dialog and fill fields
+                        fillCompose(params, 0);
+                    }
+                    function fillCompose(params, attempt) {
+                        if (attempt > 30) return; // give up after ~6s
+                        var composeWin = document.querySelector('.io-ox-mail-compose-window');
+                        if (!composeWin) {
+                            setTimeout(function() { fillCompose(params, attempt + 1); }, 200);
+                            return;
+                        }
+                        // Fill To field — OX uses a tokenfield input
+                        if (params.to) {
+                            var toInput = composeWin.querySelector('.tokenfield .token-input, .to-field input, [data-extension-id="to"] input');
+                            if (toInput) {
+                                toInput.focus();
+                                toInput.value = params.to;
+                                toInput.dispatchEvent(new Event('input', {bubbles: true}));
+                                // Press Enter/comma to tokenize the address
+                                toInput.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', keyCode: 13, bubbles: true}));
+                            }
+                        }
+                        if (params.subject) {
+                            var subjectInput = composeWin.querySelector('input[name="subject"], .subject-field input, [data-extension-id="subject"] input');
+                            if (subjectInput) {
+                                subjectInput.focus();
+                                subjectInput.value = params.subject;
+                                subjectInput.dispatchEvent(new Event('input', {bubbles: true}));
+                                subjectInput.dispatchEvent(new Event('change', {bubbles: true}));
+                            }
+                        }
+                        if (params.body) {
+                            var bodyFrame = composeWin.querySelector('iframe.mce-edit-area iframe, .editor iframe, iframe');
+                            if (bodyFrame && bodyFrame.contentDocument) {
+                                var bodyEl = bodyFrame.contentDocument.body;
+                                if (bodyEl) {
+                                    bodyEl.innerHTML = params.body.replace(/\\n/g, '<br>');
+                                }
+                            }
+                        }
+                    }
+                    tryCompose();
+                })();
+                """
+            webView.evaluateJavaScript(js)
+        } else {
+            pendingMailtoParams = parameters
         }
     }
 
