@@ -79,6 +79,9 @@ jobs:
             -exportOptionsPlist ExportOptions.plist \
             -exportPath "$BUILD_DIR"
 
+      - name: Install create-dmg
+        run: brew install create-dmg
+
       - name: Create DMG
         run: ./scripts/create-dmg.sh "$BUILD_DIR/$APP_NAME.app"
 
