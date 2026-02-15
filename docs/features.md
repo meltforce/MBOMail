@@ -31,7 +31,7 @@ Using mailbox.org in a browser works, but it's just another tab. MBOMail turns i
 - Persistent login session across app restarts
 - Full 2FA support (TOTP, WebAuthn)
 - Session expiry detection with graceful re-login
-- Custom User-Agent (`MBOMail/1.0`)
+- Custom User-Agent (`MBOMail/<version>`, dynamically set from bundle version)
 
 ## Window & Tab Management
 - Multiple tabs (`Cmd+T` / `Cmd+W` / `Cmd+1-9`)

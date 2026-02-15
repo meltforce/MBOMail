@@ -4,8 +4,9 @@ BUILD_DIR = build
 ARCHIVE_PATH = $(BUILD_DIR)/$(SCHEME).xcarchive
 APP_PATH = $(BUILD_DIR)/MBOMail.app
 EXPORT_OPTIONS = ExportOptions.plist
+DMG_OUTPUT = $(BUILD_DIR)/MBOMail.dmg
 
-.PHONY: build archive export dmg clean
+.PHONY: build archive export dmg notarize appcast release clean
 
 build:
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) \
@@ -26,6 +27,14 @@ export: archive
 
 dmg: export
 	./scripts/create-dmg.sh $(APP_PATH)
+
+notarize: dmg
+	./scripts/notarize.sh $(DMG_OUTPUT)
+
+appcast:
+	./scripts/generate-appcast.sh $(BUILD_DIR)
+
+release: clean notarize
 
 clean:
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) clean

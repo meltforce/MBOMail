@@ -50,6 +50,7 @@ Download the latest `.dmg` from [Releases](../../releases), open it, and drag MB
 ### Homebrew
 
 ```bash
+brew tap meltforce/mbomail
 brew install --cask mbomail
 ```
 

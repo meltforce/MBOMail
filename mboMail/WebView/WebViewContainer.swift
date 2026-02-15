@@ -142,9 +142,10 @@ final class WebViewStore {
         wv.allowsBackForwardNavigationGestures = true
 
         // Set custom User-Agent
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         wv.evaluateJavaScript("navigator.userAgent") { result, _ in
             if let ua = result as? String {
-                wv.customUserAgent = ua + " MBOMail/1.0"
+                wv.customUserAgent = ua + " MBOMail/\(appVersion)"
             }
         }
 
