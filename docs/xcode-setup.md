@@ -28,14 +28,14 @@ These steps must be performed by the user in the Xcode GUI before Claude Code ca
 | Include Tests | Unchecked (can add later) |
 
 5. Click **Next**
-6. Save location: choose `/Users/linus/projects/MBOMail`
+6. Save location: choose `~/projects/MBOMail`
    - **Important:** Uncheck "Create Git repository" — we'll initialize git separately
    - This will create a `mboMail.xcodeproj` and a `mboMail/` source folder inside the project directory
 
 After this step, the directory should look like:
 
 ```
-/Users/linus/projects/MBOMail/
+~/projects/MBOMail/
 ├── docs/
 ├── mboMail.xcodeproj/
 └── mboMail/

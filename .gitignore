@@ -49,6 +49,9 @@ Pods/
 # DMG
 *.dmg
 
+# Xcode logs
+Resolve Packages*.txt
+
 # Misc
 *.log
 .cache/
