@@ -69,7 +69,8 @@ jobs:
             -scheme "$SCHEME" \
             -destination 'platform=macOS' \
             -configuration Release \
-            -archivePath "$BUILD_DIR/$SCHEME.xcarchive"
+            -archivePath "$BUILD_DIR/$SCHEME.xcarchive" \
+            DEVELOPMENT_TEAM=R43S29F4G5
 
       - name: Export archive
         run: |
