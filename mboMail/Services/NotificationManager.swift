@@ -11,6 +11,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     var authorizationStatus: UNAuthorizationStatus = .notDetermined
 
     private var previousUnreadCount: Int = -1
+    private var notificationIdIndex: Int = 0
 
     private override init() {
         super.init()
@@ -84,23 +85,33 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
               newCount > previousUnreadCount else { return }
 
         let delta = newCount - previousUnreadCount
-        postNotification(newCount: delta, subject: subject, from: from)
+        postNotification(delta: delta, subject: subject, from: from)
     }
 
-    private func postNotification(newCount: Int, subject: String, from: String) {
+    private func postNotification(delta: Int, subject: String, from: String) {
         let content = UNMutableNotificationContent()
 
         if !subject.isEmpty, !from.isEmpty {
             content.title = from
-            content.body = subject
+            if delta > 1 {
+                let n = delta - 1
+                content.body = "\(subject) (and \(n) \(n == 1 ? "other" : "others"))"
+            } else {
+                content.body = subject
+            }
         } else if !subject.isEmpty {
             content.title = "MBOMail"
-            content.body = subject
+            if delta > 1 {
+                let n = delta - 1
+                content.body = "\(subject) (and \(n) \(n == 1 ? "other" : "others"))"
+            } else {
+                content.body = subject
+            }
         } else {
             content.title = "MBOMail"
-            content.body = newCount == 1
+            content.body = delta == 1
                 ? "You have 1 new email"
-                : "You have \(newCount) new emails"
+                : "You have \(delta) new emails"
         }
 
         let soundName = UserDefaults.standard.string(forKey: "notificationSound") ?? "default"
@@ -113,12 +124,22 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "\(soundName).aiff"))
         }
 
+        // Rotate between two identifiers so each notification is "fresh" to macOS
+        // (same-identifier notifications don't re-show after user dismissal).
+        // Remove the previous one first to avoid stacking duplicates.
+        let previousId = "mbomail-newMail-\(notificationIdIndex)"
+        notificationIdIndex = (notificationIdIndex + 1) % 2
+        let currentId = "mbomail-newMail-\(notificationIdIndex)"
+
+        let center = UNUserNotificationCenter.current()
+        center.removeDeliveredNotifications(withIdentifiers: [previousId, currentId])
+
         let request = UNNotificationRequest(
-            identifier: "newMail-\(UUID().uuidString)",
+            identifier: currentId,
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
+        center.add(request)
     }
 
     // MARK: - Available Sounds
