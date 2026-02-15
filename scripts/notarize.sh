@@ -82,9 +82,9 @@ echo "Notarization accepted. Stapling ticket..."
 # Staple the notarization ticket to the DMG
 xcrun stapler staple "$DMG_PATH"
 
-echo "Verifying notarization..."
+echo "Verifying staple..."
 
-# Verify the stapled DMG
-spctl --assess --type open --context context:primary-signature -v "$DMG_PATH"
+# Verify the stapled ticket (spctl does not reliably assess DMGs)
+xcrun stapler validate "$DMG_PATH"
 
 echo "Done. $(basename "$DMG_PATH") is notarized and stapled."
