@@ -551,7 +551,7 @@ mboMail/
 
 - [x] Multi-tab support with `⌘+T`, `⌘+W`, `⌘+1-9`
 - [x] Multi-window support with `⌘+N`
-- [ ] Compose in separate window (detect compose navigation)
+- [x] Compose in separate window (detect compose navigation)
 - [x] `⌘+click` opens in new tab
 
 **Deliverable:** Tabs and windows work like Safari or any native macOS browser.
