@@ -128,25 +128,58 @@ jobs:
           KEY_FILE="$(mktemp)"
           echo "$SPARKLE_ED25519_KEY" > "$KEY_FILE"
 
-          SIGNATURE=$("$SIGN_UPDATE" --ed-key-file "$KEY_FILE" "$BUILD_DIR/$APP_NAME.dmg" 2>&1 || true)
+          RAW=$("$SIGN_UPDATE" --ed-key-file "$KEY_FILE" "$BUILD_DIR/$APP_NAME.dmg" 2>&1 || true)
           rm -f "$KEY_FILE"
 
-          echo "Sparkle signature: $SIGNATURE"
-          echo "sparkle_signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
+          echo "Sparkle sign_update output: $RAW"
+          ED_SIG=$(echo "$RAW" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+          DMG_LENGTH=$(echo "$RAW" | sed -n 's/.*length="\([^"]*\)".*/\1/p')
+          echo "ed_signature=$ED_SIG" >> "$GITHUB_OUTPUT"
+          echo "dmg_length=$DMG_LENGTH" >> "$GITHUB_OUTPUT"
         id: sparkle
 
       - name: Generate appcast
-        env:
-          SPARKLE_ED25519_KEY: ${{ secrets.SPARKLE_ED25519_KEY }}
-          SPARKLE_DOWNLOAD_URL_PREFIX: https://github.com/meltforce/MBOMail/releases/download/v${{ steps.version.outputs.version }}
         run: |
-          # Try to run generate_appcast; skip gracefully if not available
-          if ./scripts/generate-appcast.sh "$BUILD_DIR" appcast.xml 2>/dev/null; then
-              echo "appcast_updated=true" >> "$GITHUB_OUTPUT"
-          else
-              echo "Warning: generate_appcast not available. Skipping appcast update."
-              echo "appcast_updated=false" >> "$GITHUB_OUTPUT"
+          VERSION="${{ steps.version.outputs.version }}"
+          ED_SIG="${{ steps.sparkle.outputs.ed_signature }}"
+          DMG_LENGTH="${{ steps.sparkle.outputs.dmg_length }}"
+          DMG_URL="https://github.com/meltforce/MBOMail/releases/download/v${VERSION}/MBOMail.dmg"
+          PUB_DATE=$(date -R)
+
+          if [ -z "$ED_SIG" ]; then
+            echo "Warning: No Sparkle signature available. Skipping appcast generation."
+            echo "appcast_updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          cat > appcast.xml <<APPCAST
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <channel>
+                  <title>MBOMail Updates</title>
+                  <language>en</language>
+                  <item>
+                      <title>MBOMail v${VERSION}</title>
+                      <pubDate>${PUB_DATE}</pubDate>
+                      <sparkle:version>${VERSION}</sparkle:version>
+                      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+                      <enclosure
+                          url="${DMG_URL}"
+                          length="${DMG_LENGTH}"
+                          type="application/octet-stream"
+                          sparkle:edSignature="${ED_SIG}"
+                      />
+                  </item>
+              </channel>
+          </rss>
+          APPCAST
+
+          # Remove leading whitespace from heredoc indentation
+          sed -i "" 's/^          //' appcast.xml
+          echo "appcast_updated=true" >> "$GITHUB_OUTPUT"
+          echo "Generated appcast.xml for v${VERSION}"
+          cat appcast.xml
         id: appcast
 
       - name: Compute DMG SHA256
@@ -193,13 +226,18 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Save generated appcast before checking out main
+          if [ "${{ steps.appcast.outputs.appcast_updated }}" = "true" ]; then
+            cp appcast.xml /tmp/appcast.xml
+          fi
+
           git fetch origin main
           git checkout main
 
-          # Update appcast.xml if available
+          # Restore generated appcast
           if [ "${{ steps.appcast.outputs.appcast_updated }}" = "true" ]; then
-            cp appcast.xml appcast.xml.bak 2>/dev/null || true
-            cp "$BUILD_DIR/../appcast.xml" appcast.xml 2>/dev/null || cp appcast.xml.bak appcast.xml 2>/dev/null || true
+            cp /tmp/appcast.xml appcast.xml
           fi
 
           # Update website download link and version badge
