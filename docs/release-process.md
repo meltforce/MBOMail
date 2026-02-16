@@ -77,7 +77,7 @@ git push origin v1.1.0
 
 ### 3. CI/CD Takes Over
 
-Pushing the `v*` tag triggers the release workflow (`.github/workflows/release.yml`), which:
+Pushing the `v*` tag triggers the release workflow (`.github/workflows/release.yml`), which automatically:
 
 1. Builds and archives the app with code signing
 2. Creates a DMG
@@ -86,30 +86,19 @@ Pushing the `v*` tag triggers the release workflow (`.github/workflows/release.y
 5. Signs the update with the Sparkle Ed25519 key
 6. Generates an updated `appcast.xml`
 7. Creates a GitHub Release with the DMG attached
-8. Commits the updated `appcast.xml` back to `main`
-9. Prints the SHA256 of the DMG in the workflow summary
+8. Commits the updated `appcast.xml` and website back to `main`
+9. Updates the Homebrew tap with the new version and SHA256
+10. Updates the website download link and version badge
 
-### 4. Update the Homebrew Cask
+Steps 8-10 are fully automated — no manual intervention required.
 
-After the release workflow completes:
+For CI pipeline setup details and pitfalls, see [macos-ci-template.md](macos-ci-template.md).
 
-1. Copy the SHA256 from the GitHub Actions summary
-2. Update `Casks/mbomail.rb` in the `meltforce/homebrew-mbomail` tap repository:
-   ```ruby
-   version "1.1.0"
-   sha256 "the-sha256-from-the-summary"
-   ```
-3. Commit and push
-
-### 5. Update the Website Version Badge
-
-Update the version badge in `website/index.html` if the displayed version has changed.
-
-### 6. Verify the Release
+### 4. Verify the Release
 
 - [ ] GitHub Release page shows the DMG and correct release notes
 - [ ] Download the DMG and verify it opens without Gatekeeper warnings
-- [ ] Run `spctl --assess --type open --context context:primary-signature -v MBOMail.dmg` to confirm notarization
+- [ ] Run `xcrun stapler validate MBOMail.dmg` to confirm notarization
 - [ ] Install from DMG and verify the app launches
 - [ ] Check the auto-update flow: install the previous version, then check for updates (it should find the new version via Sparkle)
 - [ ] Verify `brew install --cask mbomail` works with the updated tap
