@@ -205,16 +205,56 @@ jobs:
             git push origin main
           fi
 
+      - name: Update Homebrew tap
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA="${{ steps.sha256.outputs.sha256 }}"
+          TAP_REPO="meltforce/homebrew-mbomail"
+          CASK_PATH="Casks/mbomail.rb"
+
+          CASK_CONTENT=$(cat <<RUBY
+          cask "mbomail" do
+            version "${VERSION}"
+            sha256 "${SHA}"
+
+            url "https://github.com/meltforce/MBOMail/releases/download/v#{version}/MBOMail.dmg"
+            name "MBOMail"
+            desc "Native macOS wrapper for mailbox.org"
+            homepage "https://mbomail.meltforce.org"
+
+            depends_on macos: ">= :sequoia"
+
+            app "MBOMail.app"
+
+            zap trash: [
+              "~/Library/Preferences/org.meltforce.mboMail.plist",
+              "~/Library/Caches/org.meltforce.mboMail",
+              "~/Library/WebKit/org.meltforce.mboMail",
+              "~/Library/HTTPStorages/org.meltforce.mboMail",
+            ]
+          end
+          RUBY
+          )
+
+          # Get current file SHA for the update API
+          FILE_SHA=$(gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" --jq '.sha')
+
+          # Update the cask file
+          echo "$CASK_CONTENT" | gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" \
+            -X PUT \
+            -f message="Update MBOMail to v${VERSION}" \
+            -f sha="$FILE_SHA" \
+            -f content="$(echo "$CASK_CONTENT" | base64 -w 0)" \
+            --silent
+
+          echo "Homebrew tap updated to v${VERSION}"
+
       - name: Summary
         run: |
           echo "## Release Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Version:** ${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **DMG SHA256:** \`${{ steps.sha256.outputs.sha256 }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### Homebrew Cask Update" >> "$GITHUB_STEP_SUMMARY"
-          echo "Update \`Casks/mbomail.rb\` with:" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`\`\`ruby" >> "$GITHUB_STEP_SUMMARY"
-          echo "version \"${{ steps.version.outputs.version }}\"" >> "$GITHUB_STEP_SUMMARY"
-          echo "sha256 \"${{ steps.sha256.outputs.sha256 }}\"" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Homebrew tap:** updated automatically" >> "$GITHUB_STEP_SUMMARY"
