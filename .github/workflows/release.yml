@@ -1,0 +1,309 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  SCHEME: mboMail
+  PROJECT: mboMail.xcodeproj
+  BUILD_DIR: build
+  APP_NAME: MBOMail
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Install Apple certificates
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          rm -f "$CERT_PATH"
+
+          # Set keychain search list
+          security list-keychains -d user -s "$KEYCHAIN_PATH" "$(security default-keychain -d user | tr -d '"' | xargs)"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Resolve SPM dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project "$PROJECT" \
+            -scheme "$SCHEME"
+
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination 'platform=macOS' \
+            -configuration Release \
+            -archivePath "$BUILD_DIR/$SCHEME.xcarchive" \
+            DEVELOPMENT_TEAM=R43S29F4G5 \
+            ENABLE_HARDENED_RUNTIME=YES
+
+      - name: Export archive
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$BUILD_DIR/$SCHEME.xcarchive" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath "$BUILD_DIR"
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: ./scripts/create-dmg.sh "$BUILD_DIR/$APP_NAME.app"
+
+      - name: Notarize DMG
+        env:
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          APPSTORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
+        run: ./scripts/notarize.sh "$BUILD_DIR/$APP_NAME.dmg"
+
+      - name: Sign update with Sparkle Ed25519 key
+        env:
+          SPARKLE_ED25519_KEY: ${{ secrets.SPARKLE_ED25519_KEY }}
+        run: |
+          # Locate sign_update from Sparkle tools
+          SIGN_UPDATE=""
+          for candidate in \
+              "$(which sign_update 2>/dev/null || true)" \
+              "/tmp/sparkle-tools/bin/sign_update"; do
+              if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+                  SIGN_UPDATE="$candidate"
+                  break
+              fi
+          done
+
+          # If not found, extract from Sparkle package artifacts
+          if [ -z "$SIGN_UPDATE" ]; then
+              SPARKLE_BIN=$(find ~/Library/Developer/Xcode -name "sign_update" -type f 2>/dev/null | head -1 || true)
+              if [ -n "$SPARKLE_BIN" ]; then
+                  SIGN_UPDATE="$SPARKLE_BIN"
+              fi
+          fi
+
+          if [ -z "$SIGN_UPDATE" ]; then
+              echo "Warning: sign_update not found. Skipping Sparkle signature."
+              echo "sparkle_signature=" >> "$GITHUB_OUTPUT"
+              exit 0
+          fi
+
+          chmod +x "$SIGN_UPDATE"
+
+          # Write key to temp file
+          KEY_FILE="$(mktemp)"
+          echo "$SPARKLE_ED25519_KEY" > "$KEY_FILE"
+
+          RAW=$("$SIGN_UPDATE" --ed-key-file "$KEY_FILE" "$BUILD_DIR/$APP_NAME.dmg" 2>&1 || true)
+          rm -f "$KEY_FILE"
+
+          echo "Sparkle sign_update output: $RAW"
+          ED_SIG=$(echo "$RAW" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+          DMG_LENGTH=$(echo "$RAW" | sed -n 's/.*length="\([^"]*\)".*/\1/p')
+          echo "ed_signature=$ED_SIG" >> "$GITHUB_OUTPUT"
+          echo "dmg_length=$DMG_LENGTH" >> "$GITHUB_OUTPUT"
+        id: sparkle
+
+      - name: Generate appcast
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ED_SIG="${{ steps.sparkle.outputs.ed_signature }}"
+          DMG_LENGTH="${{ steps.sparkle.outputs.dmg_length }}"
+          DMG_URL="https://github.com/meltforce/MBOMail/releases/download/v${VERSION}/MBOMail.dmg"
+          PUB_DATE=$(date -R)
+
+          if [ -z "$ED_SIG" ]; then
+            echo "Warning: No Sparkle signature available. Skipping appcast generation."
+            echo "appcast_updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cat > appcast.xml <<APPCAST
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <channel>
+                  <title>MBOMail Updates</title>
+                  <language>en</language>
+                  <item>
+                      <title>MBOMail v${VERSION}</title>
+                      <pubDate>${PUB_DATE}</pubDate>
+                      <sparkle:version>${VERSION}</sparkle:version>
+                      <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+                      <enclosure
+                          url="${DMG_URL}"
+                          length="${DMG_LENGTH}"
+                          type="application/octet-stream"
+                          sparkle:edSignature="${ED_SIG}"
+                      />
+                  </item>
+              </channel>
+          </rss>
+          APPCAST
+
+          # Remove leading whitespace from heredoc indentation
+          sed -i "" 's/^          //' appcast.xml
+          echo "appcast_updated=true" >> "$GITHUB_OUTPUT"
+          echo "Generated appcast.xml for v${VERSION}"
+          cat appcast.xml
+        id: appcast
+
+      - name: Compute DMG SHA256
+        id: sha256
+        run: |
+          SHA=$(shasum -a 256 "$BUILD_DIR/$APP_NAME.dmg" | awk '{print $1}')
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "DMG SHA256: $SHA"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DMG_PATH="$BUILD_DIR/$APP_NAME.dmg"
+
+          # Build release notes
+          NOTES="## MBOMail v${VERSION}
+
+          ### Installation
+
+          **Direct download:** Download \`MBOMail.dmg\` below, open it, and drag MBOMail to Applications.
+
+          **Homebrew:**
+          \`\`\`bash
+          brew tap meltforce/mbomail
+          brew install --cask mbomail
+          \`\`\`
+
+          ### Checksums
+          - **SHA256:** \`${{ steps.sha256.outputs.sha256 }}\`
+
+          ---
+          [Full changelog](https://github.com/meltforce/MBOMail/commits/v${VERSION})"
+
+          gh release create "v${VERSION}" "$DMG_PATH" \
+            --title "MBOMail v${VERSION}" \
+            --notes "$NOTES"
+
+      - name: Update repository (appcast + website)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Save generated appcast before checking out main
+          if [ "${{ steps.appcast.outputs.appcast_updated }}" = "true" ]; then
+            cp appcast.xml /tmp/appcast.xml
+          fi
+
+          git fetch origin main
+          git checkout main
+
+          # Restore generated appcast
+          if [ "${{ steps.appcast.outputs.appcast_updated }}" = "true" ]; then
+            cp /tmp/appcast.xml appcast.xml
+          fi
+
+          # Update website download link and version badge
+          DMG_URL="https://github.com/meltforce/MBOMail/releases/download/v${VERSION}/MBOMail.dmg"
+          sed -i "" "s|href=\"https://github.com/meltforce/MBOMail/releases/[^\"]*\" class=\"btn-primary\"|href=\"${DMG_URL}\" class=\"btn-primary\"|" website/index.html
+          sed -i "" "s|<span class=\"version-badge\">v[^<]*</span>|<span class=\"version-badge\">v${VERSION}</span>|" website/index.html
+
+          # Commit all changes together
+          git add appcast.xml website/index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update website and appcast for v${VERSION}"
+            git push origin main
+          fi
+
+      - name: Update Homebrew tap
+        env:
+          GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA="${{ steps.sha256.outputs.sha256 }}"
+          TAP_REPO="meltforce/homebrew-mbomail"
+          CASK_PATH="Casks/mbomail.rb"
+
+          CASK_CONTENT=$(cat <<RUBY
+          cask "mbomail" do
+            version "${VERSION}"
+            sha256 "${SHA}"
+
+            url "https://github.com/meltforce/MBOMail/releases/download/v#{version}/MBOMail.dmg"
+            name "MBOMail"
+            desc "Native macOS wrapper for mailbox.org"
+            homepage "https://mbomail.meltforce.org"
+
+            depends_on macos: ">= :sequoia"
+
+            app "MBOMail.app"
+
+            zap trash: [
+              "~/Library/Preferences/org.meltforce.mboMail.plist",
+              "~/Library/Caches/org.meltforce.mboMail",
+              "~/Library/WebKit/org.meltforce.mboMail",
+              "~/Library/HTTPStorages/org.meltforce.mboMail",
+            ]
+          end
+          RUBY
+          )
+
+          # Get current file SHA for the update API
+          FILE_SHA=$(gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" --jq '.sha')
+
+          # Update the cask file
+          echo "$CASK_CONTENT" | gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" \
+            -X PUT \
+            -f message="Update MBOMail to v${VERSION}" \
+            -f sha="$FILE_SHA" \
+            -f content="$(echo "$CASK_CONTENT" | base64 -w 0)" \
+            --silent
+
+          echo "Homebrew tap updated to v${VERSION}"
+
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Version:** ${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **DMG SHA256:** \`${{ steps.sha256.outputs.sha256 }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Homebrew tap:** updated automatically" >> "$GITHUB_STEP_SUMMARY"
