@@ -21,8 +21,8 @@ struct MBOMailApp: App {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updater: updaterController.updater)
             }
-            CommandGroup(after: .newItem) {
-                NewTabCommand()
+            CommandGroup(replacing: .newItem) {
+                WindowCommands()
             }
             CommandGroup(after: .textEditing) {
                 Button("Search Mail...") {
@@ -166,10 +166,19 @@ final class ZoomKeyMonitor {
     }
 }
 
-struct NewTabCommand: View {
+struct WindowCommands: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        Button("New Window") {
+            NSWindow.allowsAutomaticWindowTabbing = false
+            openWindow(id: "main")
+            DispatchQueue.main.async {
+                NSWindow.allowsAutomaticWindowTabbing = true
+            }
+        }
+        .keyboardShortcut("n", modifiers: .command)
+
         Button("New Tab") {
             openWindow(id: "main")
         }
