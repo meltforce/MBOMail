@@ -87,13 +87,35 @@ spctl --assess --type open --context context:primary-signature -v "$DMG_PATH"
 xcrun stapler validate "$DMG_PATH"
 ```
 
+## 5. Automated Homebrew Tap Update
+
+**Problem:** After each release, the Homebrew cask in `meltforce/homebrew-mbomail` had to be updated manually with the new version and SHA256.
+
+**Fix:** Added an "Update Homebrew tap" step to the release workflow. It uses the GitHub API to update `Casks/mbomail.rb` in the tap repository with the new version and DMG SHA256 hash. The `GITHUB_TOKEN` has push access to the tap repo since it's under the same organization.
+
+## 6. Automated Website Download Link and Version Badge
+
+**Problem:** The download button on `website/index.html` pointed to the GitHub releases page instead of the DMG directly, and the version badge had to be updated manually.
+
+**Fix:** The "Update repository (appcast + website)" step now uses `sed` to update two things in `website/index.html`:
+
+1. The download link `href` — changed from the releases page URL to a direct DMG download link (`/releases/download/vX.Y.Z/MBOMail.dmg`)
+2. The version badge text — updated to match the new release version
+
+These changes are committed and pushed to `main` alongside the appcast update in a single commit, which triggers the GitHub Pages deployment automatically.
+
+The `sed` patterns match:
+- Download link: `href="https://github.com/meltforce/MBOMail/releases/..." class="btn-primary"`
+- Version badge: `<span class="version-badge">vX.Y.Z</span>`
+
 ## Summary of Changed Files
 
 | File | Change |
 |------|--------|
 | `ExportOptions.plist` | Added `teamID` |
-| `.github/workflows/release.yml` | Added `DEVELOPMENT_TEAM`, `ENABLE_HARDENED_RUNTIME`, and `brew install create-dmg` |
+| `.github/workflows/release.yml` | Added `DEVELOPMENT_TEAM`, `ENABLE_HARDENED_RUNTIME`, `brew install create-dmg`, Homebrew tap auto-update, website auto-update |
 | `scripts/notarize.sh` | Replaced `spctl --assess` with `xcrun stapler validate` |
+| `website/index.html` | Download link now points to direct DMG URL (auto-updated by CI) |
 
 ## Required GitHub Secrets
 

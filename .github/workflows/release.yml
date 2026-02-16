@@ -186,22 +186,33 @@ jobs:
             --title "MBOMail v${VERSION}" \
             --notes "$NOTES"
 
-      - name: Update appcast.xml in repository
-        if: steps.appcast.outputs.appcast_updated == 'true'
+      - name: Update repository (appcast + website)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          cp appcast.xml appcast.xml.bak 2>/dev/null || true
-          cp "$BUILD_DIR/../appcast.xml" appcast.xml 2>/dev/null || cp appcast.xml.bak appcast.xml 2>/dev/null || true
-          if git diff --quiet appcast.xml 2>/dev/null; then
-            echo "No changes to appcast.xml"
+
+          # Update appcast.xml if available
+          if [ "${{ steps.appcast.outputs.appcast_updated }}" = "true" ]; then
+            cp appcast.xml appcast.xml.bak 2>/dev/null || true
+            cp "$BUILD_DIR/../appcast.xml" appcast.xml 2>/dev/null || cp appcast.xml.bak appcast.xml 2>/dev/null || true
+          fi
+
+          # Update website download link and version badge
+          DMG_URL="https://github.com/meltforce/MBOMail/releases/download/v${VERSION}/MBOMail.dmg"
+          sed -i "s|href=\"https://github.com/meltforce/MBOMail/releases/[^\"]*\" class=\"btn-primary\"|href=\"${DMG_URL}\" class=\"btn-primary\"|" website/index.html
+          sed -i "s|<span class=\"version-badge\">v[^<]*</span>|<span class=\"version-badge\">v${VERSION}</span>|" website/index.html
+
+          # Commit all changes together
+          git add appcast.xml website/index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
           else
-            git add appcast.xml
-            git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}"
+            git commit -m "Update website and appcast for v${VERSION}"
             git push origin main
           fi
 
