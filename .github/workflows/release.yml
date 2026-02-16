@@ -204,8 +204,8 @@ jobs:
 
           # Update website download link and version badge
           DMG_URL="https://github.com/meltforce/MBOMail/releases/download/v${VERSION}/MBOMail.dmg"
-          sed -i "s|href=\"https://github.com/meltforce/MBOMail/releases/[^\"]*\" class=\"btn-primary\"|href=\"${DMG_URL}\" class=\"btn-primary\"|" website/index.html
-          sed -i "s|<span class=\"version-badge\">v[^<]*</span>|<span class=\"version-badge\">v${VERSION}</span>|" website/index.html
+          sed -i "" "s|href=\"https://github.com/meltforce/MBOMail/releases/[^\"]*\" class=\"btn-primary\"|href=\"${DMG_URL}\" class=\"btn-primary\"|" website/index.html
+          sed -i "" "s|<span class=\"version-badge\">v[^<]*</span>|<span class=\"version-badge\">v${VERSION}</span>|" website/index.html
 
           # Commit all changes together
           git add appcast.xml website/index.html
