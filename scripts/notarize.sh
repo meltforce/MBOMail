@@ -40,13 +40,25 @@ else
     mkdir -p "$KEY_DIR"
     KEY_PATH="$KEY_DIR/AuthKey_${APPSTORE_CONNECT_KEY_ID}.p8"
 
-    # Decode secret: GitHub Actions may store with literal \n or actual newlines
+    # Decode secret: GitHub Actions may store with literal \n or actual newlines.
+    # Rewrap base64 at 64 chars/line — Xcode 26's notarytool requires strict PEM formatting.
     python3 -c "
-import os
+import os, textwrap
+
 key = os.environ['APPSTORE_CONNECT_PRIVATE_KEY']
+# Normalize escaped newlines from GitHub secrets
 key = key.replace('\\\\n', '\\n').strip()
+
+# Extract raw base64 (strip PEM headers if present)
+lines = [l for l in key.splitlines() if l and not l.startswith('-----')]
+raw_b64 = ''.join(lines).replace(' ', '')
+
+# Rewrap at 64 chars (PEM standard) and reassemble
+wrapped = '\\n'.join(textwrap.wrap(raw_b64, 64))
+pem = f'-----BEGIN PRIVATE KEY-----\\n{wrapped}\\n-----END PRIVATE KEY-----\\n'
+
 with open('$KEY_PATH', 'w') as f:
-    f.write(key + '\\n')
+    f.write(pem)
 "
     echo "Key file lines: $(wc -l < "$KEY_PATH"), begins with: $(head -c 20 "$KEY_PATH")"
     CLEANUP_KEY=true
