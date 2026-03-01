@@ -98,6 +98,7 @@ body {
 .feature-grid .reveal:nth-child(7) { transition-delay: 0.36s; }
 .feature-grid .reveal:nth-child(8) { transition-delay: 0.42s; }
 .feature-grid .reveal:nth-child(9) { transition-delay: 0.48s; }
+.feature-grid .reveal:nth-child(10) { transition-delay: 0.54s; }
 
 /* --- Layout --- */
 
