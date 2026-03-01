@@ -88,11 +88,29 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         postNotification(delta: delta, subject: subject, from: from)
     }
 
-    private func postNotification(delta: Int, subject: String, from: String) {
+    /// Multi-account variant: uses per-account previous count tracking (managed by AccountManager).
+    func handleUnreadCountChange(_ newCount: Int, previousCount: Int, accountName: String, subject: String, from: String, settings: AppSettings) {
+        guard settings.notificationsEnabled else { return }
+
+        if authorizationStatus == .notDetermined {
+            Task { await requestPermission() }
+            return
+        }
+
+        guard authorizationStatus == .authorized,
+              previousCount >= 0,
+              newCount > previousCount else { return }
+
+        let delta = newCount - previousCount
+        postNotification(delta: delta, subject: subject, from: from, accountName: accountName)
+    }
+
+    private func postNotification(delta: Int, subject: String, from: String, accountName: String? = nil) {
         let content = UNMutableNotificationContent()
 
+        let showAccountName = accountName != nil && AccountManager.shared.accounts.count > 1
         if !subject.isEmpty, !from.isEmpty {
-            content.title = from
+            content.title = showAccountName ? "\(from) (\(accountName!))" : from
             if delta > 1 {
                 let n = delta - 1
                 content.body = "\(subject) (and \(n) \(n == 1 ? "other" : "others"))"

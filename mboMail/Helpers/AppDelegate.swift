@@ -32,6 +32,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyUp(for: .toggleVisibility) {
             toggleAppVisibility()
         }
+
+        // Observe menu bar preference changes for StatusItemManager
+        NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            let show = UserDefaults.standard.object(forKey: "showInMenuBar") == nil
+                ? true
+                : UserDefaults.standard.bool(forKey: "showInMenuBar")
+            StatusItemManager.shared.isVisible = show
+        }
     }
 
     /// Handle mailto: URLs intercepted at the AppleEvent level.

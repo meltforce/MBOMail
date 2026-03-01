@@ -8,20 +8,6 @@ final class PendingTabNavigation {
     var pendingURL: URL?
 }
 
-@MainActor
-final class NewTabAction {
-    static let shared = NewTabAction()
-    private var handler: (() -> Void)?
-
-    func register(_ action: @escaping () -> Void) {
-        handler = action
-    }
-
-    func createNewTab() {
-        handler?()
-    }
-}
-
 struct WebViewContainer: NSViewRepresentable {
 
     @Binding var isLoading: Bool
@@ -60,9 +46,13 @@ struct WebViewContainer: NSViewRepresentable {
         coordinator.onLinkHover = { url in
             hoveredLink = url
         }
-        coordinator.onUnreadCount = { [appSettings] count, subject, from in
-            NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
-            NotificationManager.shared.handleUnreadCountChange(count, subject: subject, from: from, settings: appSettings)
+        coordinator.onUnreadCount = { [appSettings, webViewStore] count, subject, from in
+            if let accountID = webViewStore.accountID {
+                AccountManager.shared.updateUnreadCount(for: accountID, count: count, subject: subject, from: from, settings: appSettings)
+            } else {
+                NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
+                NotificationManager.shared.handleUnreadCountChange(count, subject: subject, from: from, settings: appSettings)
+            }
         }
         coordinator.onMessageId = { messageId in
             let link = "message:\(messageId)"
@@ -102,6 +92,7 @@ struct WebViewContainer: NSViewRepresentable {
 @Observable
 final class WebViewStore {
 
+    let accountID: UUID?
     let webView: WKWebView
     let userContentController: WKUserContentController
     private var unreadPollTimer: Timer?
@@ -124,12 +115,18 @@ final class WebViewStore {
         unreadPollTimer?.invalidate()
     }
 
-    init() {
+    init(accountID: UUID? = nil) {
+        self.accountID = accountID
+
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         config.preferences.isElementFullscreenEnabled = true
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
-        config.websiteDataStore = .default()
+        if let accountID {
+            config.websiteDataStore = AccountManager.shared.dataStore(for: accountID)
+        } else {
+            config.websiteDataStore = .default()
+        }
 
         let controller = WKUserContentController()
         config.userContentController = controller

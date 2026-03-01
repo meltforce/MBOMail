@@ -148,7 +148,9 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WK
 
     private func openURLInNewTab(_ url: URL) {
         PendingTabNavigation.shared.pendingURL = url
-        NewTabAction.shared.createNewTab()
+        if let accountID = (NSApp.mainWindow?.mboMailAccountID) {
+            WindowActionRouter.shared.openAccount(accountID, inNewWindow: false)
+        }
     }
 
     // MARK: - Session Detection

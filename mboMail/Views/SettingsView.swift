@@ -14,6 +14,8 @@ struct SettingsView: View {
         TabView {
             GeneralSettingsTab()
                 .tabItem { Label("General", systemImage: "gearshape") }
+            AccountsSettingsTab()
+                .tabItem { Label("Accounts", systemImage: "person.2") }
             UserInterfaceSettingsTab()
                 .tabItem { Label("User Interface", systemImage: "macwindow") }
             ShortcutsSettingsTab()

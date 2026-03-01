@@ -3,7 +3,9 @@ import WebKit
 
 struct MainWindow: View {
 
-    @State private var webViewStore = WebViewStore()
+    let accountID: UUID?
+
+    @State private var webViewStore: WebViewStore
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(AppSettings.self) private var appSettings
     @Environment(\.openWindow) private var openWindow
@@ -17,18 +19,24 @@ struct MainWindow: View {
 
     private let downloadDelegate = DownloadDelegate()
 
+    init(accountID: UUID? = nil) {
+        self.accountID = accountID
+        _webViewStore = State(initialValue: WebViewStore(accountID: accountID))
+    }
+
     var body: some View {
         mainContent
             .frame(minWidth: 800, minHeight: 600)
-            .background(WindowAccessor())
+            .background(WindowAccessor(accountID: accountID))
+            .focusedValue(\.activeAccountID, accountID)
             .modifier(ZoomHandlers(webViewStore: webViewStore, appSettings: appSettings))
             .modifier(ActionHandlers(webViewStore: webViewStore, appSettings: appSettings))
             .modifier(SettingsHandlers(webViewStore: webViewStore, appSettings: appSettings))
             .onAppear {
                 _ = ZoomKeyMonitor.shared
-                NewTabAction.shared.register { [openWindow] in
-                    openWindow(id: "main")
-                }
+                FileMenuAccountManager.shared.setup()
+                StatusItemManager.shared.setup()
+                AccountManager.shared.migrateIfNeeded()
                 // Pick up mailto params from cold start (arrived before this view existed)
                 if let params = AppDelegate.pendingMailtoParams {
                     AppDelegate.pendingMailtoParams = nil
@@ -268,18 +276,25 @@ private struct SettingsHandlers: ViewModifier {
 // MARK: - Window Configuration
 
 private class WindowConfigView: NSView {
+    var accountID: UUID?
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         guard let window = self.window else { return }
         window.tabbingMode = .preferred
         window.tabbingIdentifier = "mboMailMainWindow"
+        window.mboMailAccountID = accountID
         window.setFrameAutosaveName("MainWindow")
     }
 }
 
 private struct WindowAccessor: NSViewRepresentable {
+    let accountID: UUID?
+
     func makeNSView(context: Context) -> NSView {
-        WindowConfigView()
+        let view = WindowConfigView()
+        view.accountID = accountID
+        return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {}
