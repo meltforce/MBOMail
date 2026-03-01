@@ -34,7 +34,6 @@ struct MainWindow: View {
             .modifier(SettingsHandlers(webViewStore: webViewStore, appSettings: appSettings))
             .onAppear {
                 _ = ZoomKeyMonitor.shared
-                FileMenuAccountManager.shared.setup()
                 StatusItemManager.shared.setup()
                 AccountManager.shared.migrateIfNeeded()
                 // Pick up mailto params from cold start (arrived before this view existed)
