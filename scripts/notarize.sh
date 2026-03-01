@@ -37,6 +37,20 @@ if [ -f "$APPSTORE_CONNECT_PRIVATE_KEY" ]; then
 else
     KEY_PATH="$(mktemp /tmp/authkey.XXXXXX.p8)"
     printf '%s\n' "$APPSTORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
+    # Validate the key looks like a PEM file
+    if ! head -1 "$KEY_PATH" | grep -q "BEGIN"; then
+        echo "Warning: key does not start with BEGIN header, attempting to decode literal \\n"
+        python3 -c "
+import sys, os
+key = os.environ['APPSTORE_CONNECT_PRIVATE_KEY']
+# Replace literal backslash-n with actual newlines
+key = key.replace('\\\\n', '\\n')
+with open(sys.argv[1], 'w') as f:
+    f.write(key)
+" "$KEY_PATH"
+    fi
+    echo "Key file first line: $(head -1 "$KEY_PATH")"
+    echo "Key file line count: $(wc -l < "$KEY_PATH")"
     CLEANUP_KEY=true
 fi
 
