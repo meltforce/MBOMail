@@ -171,63 +171,128 @@ struct MBOMailApp: App {
 // MARK: - File Menu Account Manager
 
 @MainActor
-final class FileMenuAccountManager {
+final class FileMenuAccountManager: NSObject {
     static let shared = FileMenuAccountManager()
-    private var observation: NSObjectProtocol?
+    private let sectionTag = 9999
+    private weak var currentFileMenu: NSMenu?
+    private var trackingObserver: NSObjectProtocol?
+    private var defaultsObserver: NSObjectProtocol?
 
     func setup() {
-        guard observation == nil else { return }
-        rebuildMenu()
-        observation = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.rebuildMenu()
+        if trackingObserver == nil {
+            trackingObserver = NotificationCenter.default.addObserver(
+                forName: NSMenu.didBeginTrackingNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.refreshFileMenu(attempt: 0)
+                }
+            }
+        }
+        if defaultsObserver == nil {
+            defaultsObserver = NotificationCenter.default.addObserver(
+                forName: UserDefaults.didChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.refreshFileMenu(attempt: 0)
+                }
+            }
+        }
+        refreshFileMenu(attempt: 0)
+    }
+
+    private func refreshFileMenu(attempt: Int) {
+        if let menu = findFileMenu() {
+            currentFileMenu = menu
+            rebuildMenu(in: menu)
+            return
+        }
+        guard attempt < 20 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.refreshFileMenu(attempt: attempt + 1)
         }
     }
 
-    private func rebuildMenu() {
-        guard let fileMenu = NSApp.mainMenu?.item(withTitle: "File")?.submenu else { return }
+    private func findFileMenu() -> NSMenu? {
+        guard let mainMenu = NSApp.mainMenu else { return nil }
+        if mainMenu.items.indices.contains(1), let menu = mainMenu.items[1].submenu {
+            return menu
+        }
+        return mainMenu.items.compactMap(\.submenu).first(where: isLikelyFileMenu)
+    }
+
+    private func isLikelyFileMenu(_ menu: NSMenu) -> Bool {
+        let hasCmdN = menu.items.contains {
+            $0.keyEquivalent.lowercased() == "n" && $0.keyEquivalentModifierMask == [.command]
+        }
+        let hasCmdT = menu.items.contains {
+            $0.keyEquivalent.lowercased() == "t" && $0.keyEquivalentModifierMask == [.command]
+        }
+        let hasCmdW = menu.items.contains {
+            $0.keyEquivalent.lowercased() == "w" && $0.keyEquivalentModifierMask == [.command]
+        }
+        return hasCmdN && (hasCmdT || hasCmdW)
+    }
+
+    private func rebuildMenu(in fileMenu: NSMenu) {
 
         // Remove previously inserted account items (tagged)
-        for item in fileMenu.items where item.tag == 9999 {
+        for item in fileMenu.items.reversed() where item.tag == sectionTag {
             fileMenu.removeItem(item)
         }
 
         let accounts = AccountManager.shared.accounts
         guard accounts.count > 1 else { return }
 
-        // Insert after the last item (before nothing, at end)
-        let insertionIndex = fileMenu.items.count
+        var insertionIndex = fileMenu.numberOfItems
+        if let newTabIndex = fileMenu.items.firstIndex(where: {
+            $0.keyEquivalent.lowercased() == "t" && $0.keyEquivalentModifierMask == [.command]
+        }) {
+            insertionIndex = newTabIndex + 1
+        } else if let newWindowIndex = fileMenu.items.firstIndex(where: {
+            $0.keyEquivalent.lowercased() == "n" && $0.keyEquivalentModifierMask == [.command]
+        }) {
+            insertionIndex = newWindowIndex + 1
+        }
 
         let separator = NSMenuItem.separator()
-        separator.tag = 9999
+        separator.tag = sectionTag
         fileMenu.insertItem(separator, at: insertionIndex)
+        insertionIndex += 1
 
-        for (_, account) in accounts.enumerated() {
+        for (idx, account) in accounts.enumerated() {
             let openItem = NSMenuItem(
                 title: "Open \(account.displayName)",
                 action: #selector(openAccount(_:)),
-                keyEquivalent: ""
+                keyEquivalent: idx < 9 ? "\(idx + 1)" : ""
             )
             openItem.target = self
-            openItem.tag = 9999
+            openItem.tag = sectionTag
             openItem.representedObject = account.id
-            fileMenu.insertItem(openItem, at: insertionIndex + 1)
+            openItem.keyEquivalentModifierMask = idx < 9 ? [.control] : []
+            fileMenu.insertItem(openItem, at: insertionIndex)
+            insertionIndex += 1
 
             let newWindowItem = NSMenuItem(
                 title: "Open \(account.displayName) in New Window",
                 action: #selector(openAccountInNewWindow(_:)),
-                keyEquivalent: ""
+                keyEquivalent: idx < 9 ? "\(idx + 1)" : ""
             )
             newWindowItem.target = self
-            newWindowItem.tag = 9999
+            newWindowItem.tag = sectionTag
             newWindowItem.isAlternate = true
-            newWindowItem.keyEquivalentModifierMask = [.option]
+            newWindowItem.keyEquivalentModifierMask = idx < 9 ? [.control, .option] : [.option]
             newWindowItem.representedObject = account.id
-            fileMenu.insertItem(newWindowItem, at: insertionIndex + 2)
+            fileMenu.insertItem(newWindowItem, at: insertionIndex)
+            insertionIndex += 1
         }
+
+        let bottomSeparator = NSMenuItem.separator()
+        bottomSeparator.tag = sectionTag
+        fileMenu.insertItem(bottomSeparator, at: insertionIndex)
     }
 
     @objc private func openAccount(_ sender: NSMenuItem) {
@@ -282,10 +347,13 @@ final class StatusItemManager {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            let show = UserDefaults.standard.object(forKey: "showInMenuBar") == nil
-                ? true
-                : UserDefaults.standard.bool(forKey: "showInMenuBar")
-            self?.isVisible = show
+            Task { @MainActor [weak self] in
+                let show = UserDefaults.standard.object(forKey: "showInMenuBar") == nil
+                    ? true
+                    : UserDefaults.standard.bool(forKey: "showInMenuBar")
+                self?.isVisible = show
+                self?.rebuildMenu()
+            }
         }
     }
 

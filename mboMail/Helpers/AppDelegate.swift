@@ -29,6 +29,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // is set before any notifications arrive or are clicked
         _ = NotificationManager.shared
 
+        // Install native File menu account entries (supports Option alternates).
+        FileMenuAccountManager.shared.setup()
+
         KeyboardShortcuts.onKeyUp(for: .toggleVisibility) {
             toggleAppVisibility()
         }
@@ -39,10 +42,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { _ in
-            let show = UserDefaults.standard.object(forKey: "showInMenuBar") == nil
-                ? true
-                : UserDefaults.standard.bool(forKey: "showInMenuBar")
-            StatusItemManager.shared.isVisible = show
+            Task { @MainActor in
+                let show = UserDefaults.standard.object(forKey: "showInMenuBar") == nil
+                    ? true
+                    : UserDefaults.standard.bool(forKey: "showInMenuBar")
+                StatusItemManager.shared.isVisible = show
+            }
         }
     }
 
