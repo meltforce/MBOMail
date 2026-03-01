@@ -36,7 +36,7 @@ if [ -f "$APPSTORE_CONNECT_PRIVATE_KEY" ]; then
     CLEANUP_KEY=false
 else
     KEY_PATH="$(mktemp /tmp/authkey.XXXXXX.p8)"
-    echo "$APPSTORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
+    printf '%s\n' "$APPSTORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
     CLEANUP_KEY=true
 fi
 
