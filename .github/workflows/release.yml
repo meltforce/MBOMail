@@ -64,6 +64,7 @@ jobs:
 
       - name: Archive
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
           xcodebuild archive \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
@@ -71,7 +72,8 @@ jobs:
             -configuration Release \
             -archivePath "$BUILD_DIR/$SCHEME.xcarchive" \
             DEVELOPMENT_TEAM=R43S29F4G5 \
-            ENABLE_HARDENED_RUNTIME=YES
+            ENABLE_HARDENED_RUNTIME=YES \
+            CURRENT_PROJECT_VERSION="$VERSION"
 
       - name: Export archive
         run: |
